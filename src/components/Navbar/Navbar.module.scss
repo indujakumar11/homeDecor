@@ -35,6 +35,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
+  width: 100%;
 }
 
 .desktopNav {
@@ -123,6 +124,7 @@
   border: 1px solid rgba(181, 138, 60, 0.2);
   background: rgba(18, 18, 18, 0.5);
   transition: all var(--transition-fast);
+  white-space: nowrap;
 
   &:hover {
     color: #ffffff;
@@ -140,12 +142,13 @@
 }
 
 .consultationBtn {
-  padding: 0.75rem 1.4rem;
-  font-size: 0.75rem;
-  letter-spacing: 0.14em;
+  padding: 0.55rem 1.05rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
 
   @include respond-to('md') {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -153,10 +156,22 @@
   display: none;
   @include button-reset;
   color: var(--color-gold-light);
-  padding: 0.4rem;
+  padding: 0.5rem;
   border-radius: 4px;
-  border: 1px solid rgba(181, 138, 60, 0.3);
-  background: rgba(18, 18, 18, 0.6);
+  border: 1px solid rgba(181, 138, 60, 0.45);
+  background: rgba(18, 18, 18, 0.85);
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  z-index: 1010;
+  transition: all var(--transition-fast);
+
+  &:hover, &:focus-visible {
+    color: #ffffff;
+    border-color: var(--color-gold-light);
+    background: rgba(181, 138, 60, 0.15);
+  }
 
   @include respond-to('lg') {
     display: flex;
