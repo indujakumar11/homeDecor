@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { NavLink } from 'react-router-dom';
 import Logo from '../common/Logo';
 import { Menu, X, Phone, Calendar, ArrowRight } from 'lucide-react';
 import styles from './Navbar.module.scss';
 
 const NAV_LINKS = [
-  { name: 'HOME', href: '#home' },
-  { name: 'ABOUT', href: '#about' },
-  { name: 'SERVICES', href: '#services' },
-  { name: 'PROJECTS', href: '#projects' },
-  { name: 'PROCESS', href: '#process' },
-  { name: 'CONTACT', href: '#contact' },
+  { name: 'HOME', href: '/' },
+  { name: 'ABOUT', href: '/about' },
+  { name: 'SERVICES', href: '/services' },
+  { name: 'PROJECTS', href: '/projects' },
+  { name: 'PROCESS', href: '/process' },
+  { name: 'CONTACT', href: '/contact' },
 ];
 
 const Navbar = ({ onOpenConsultation }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('home');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,22 +23,6 @@ const Navbar = ({ onOpenConsultation }) => {
         setIsScrolled(true);
       } else {
         setIsScrolled(false);
-      }
-
-      // Determine active section
-      const sections = ['home', 'about', 'services', 'projects', 'process', 'contact'];
-      const scrollPos = window.scrollY + 200;
-
-      for (const section of sections) {
-        const el = document.getElementById(section);
-        if (el) {
-          const top = el.offsetTop;
-          const height = el.offsetHeight;
-          if (scrollPos >= top && scrollPos < top + height) {
-            setActiveSection(section);
-            break;
-          }
-        }
       }
     };
 
@@ -55,22 +39,6 @@ const Navbar = ({ onOpenConsultation }) => {
     }
   }, [mobileMenuOpen]);
 
-  const handleNavClick = (e, href) => {
-    e.preventDefault();
-    setMobileMenuOpen(false);
-    const targetId = href.replace('#', '');
-    const element = document.getElementById(targetId);
-    if (element) {
-      const headerOffset = 80;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
-  };
-
   return (
     <>
       <header className={`${styles.header} ${isScrolled ? styles.scrolled : ''}`}>
@@ -81,22 +49,17 @@ const Navbar = ({ onOpenConsultation }) => {
           {/* Desktop Navigation Links */}
           <nav className={styles.desktopNav} aria-label="Main Navigation">
             <ul className={styles.navList}>
-              {NAV_LINKS.map((link) => {
-                const sectionId = link.href.replace('#', '');
-                const isActive = activeSection === sectionId;
-                return (
-                  <li key={link.name} className={styles.navItem}>
-                    <a
-                      href={link.href}
-                      onClick={(e) => handleNavClick(e, link.href)}
-                      className={`${styles.navLink} ${isActive ? styles.active : ''}`}
-                    >
-                      {link.name}
-                      <span className={styles.navIndicator}></span>
-                    </a>
-                  </li>
-                );
-              })}
+              {NAV_LINKS.map((link) => (
+                <li key={link.name} className={styles.navItem}>
+                  <NavLink
+                    to={link.href}
+                    className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
+                  >
+                    {link.name}
+                    <span className={styles.navIndicator}></span>
+                  </NavLink>
+                </li>
+              ))}
             </ul>
           </nav>
 
@@ -155,22 +118,18 @@ const Navbar = ({ onOpenConsultation }) => {
         <div className={styles.drawerContent}>
           <p className={styles.drawerTagline}>WE DESIGN • WE SCULPT • WE CREATE</p>
           <ul className={styles.mobileNavList}>
-            {NAV_LINKS.map((link) => {
-              const sectionId = link.href.replace('#', '');
-              const isActive = activeSection === sectionId;
-              return (
-                <li key={link.name}>
-                  <a
-                    href={link.href}
-                    onClick={(e) => handleNavClick(e, link.href)}
-                    className={`${styles.mobileNavLink} ${isActive ? styles.mobileActive : ''}`}
-                  >
-                    <span>{link.name}</span>
-                    <ArrowRight size={16} className={styles.mobileArrow} />
-                  </a>
-                </li>
-              );
-            })}
+            {NAV_LINKS.map((link) => (
+              <li key={link.name}>
+                <NavLink
+                  to={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) => `${styles.mobileNavLink} ${isActive ? styles.mobileActive : ''}`}
+                >
+                  <span>{link.name}</span>
+                  <ArrowRight size={16} className={styles.mobileArrow} />
+                </NavLink>
+              </li>
+            ))}
           </ul>
 
           <div className={styles.drawerFooter}>

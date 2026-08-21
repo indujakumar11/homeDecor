@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowDown, Sparkles, Compass, Eye, Calendar } from 'lucide-react';
 import styles from './Hero.module.scss';
 
 const Hero = ({ onOpenConsultation }) => {
+  const navigate = useNavigate();
   const handleScrollToSection = (id) => {
     const el = document.getElementById(id);
     if (el) {
@@ -76,7 +78,7 @@ const Hero = ({ onOpenConsultation }) => {
             <button
               type="button"
               className={`btn btn-outline-gold ${styles.secondaryCta}`}
-              onClick={() => handleScrollToSection('projects')}
+              onClick={() => navigate('/projects')}
             >
               <Eye size={16} />
               <span>Explore Our Work</span>

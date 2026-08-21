@@ -1,20 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import styles from './Showcase.module.scss';
 
 const Showcase = ({ onOpenConsultation }) => {
-  const handleScrollToProjects = () => {
-    const el = document.getElementById('projects');
-    if (el) {
-      const headerOffset = 80;
-      const elementPosition = el.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
-  };
+  const navigate = useNavigate();
 
   return (
     <section className={styles.showcaseSection}>
@@ -55,7 +45,7 @@ const Showcase = ({ onOpenConsultation }) => {
             <button
               type="button"
               className="btn btn-outline-gold"
-              onClick={handleScrollToProjects}
+              onClick={() => navigate('/projects')}
             >
               <span>Explore Portfolio</span>
             </button>

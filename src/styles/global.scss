@@ -287,3 +287,65 @@ button {
     scroll-behavior: auto !important;
   }
 }
+
+/* ============================================
+   SUBPAGE LAYOUT — offset for sticky navbar
+   ============================================ */
+.subpage-layout {
+  padding-top: var(--header-height);
+
+  @media (max-width: 768px) {
+    padding-top: var(--header-height-mobile);
+  }
+}
+
+/* ============================================
+   GLOBAL MOBILE RESPONSIVE IMPROVEMENTS
+   ============================================ */
+
+/* Buttons — touch-friendly sizing on mobile */
+@media (max-width: 480px) {
+  .btn {
+    padding: 0.9rem 1.5rem;
+    font-size: 0.78rem;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-primary-gold,
+  .btn-outline-gold {
+    width: 100%;
+  }
+}
+
+/* Section padding tighter on small screens */
+@media (max-width: 480px) {
+  .section-padding {
+    padding: 3rem 0;
+  }
+
+  .section-header {
+    margin-bottom: 2rem;
+
+    .section-title {
+      font-size: 1.65rem;
+    }
+
+    .section-subtitle {
+      font-size: 0.9rem;
+    }
+  }
+
+  .gold-divider {
+    margin: 1rem auto;
+  }
+}
+
+/* Container — tighter on very small screens */
+@media (max-width: 380px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+

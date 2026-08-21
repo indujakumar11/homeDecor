@@ -314,4 +314,14 @@
   gap: 1rem;
   margin-top: auto;
   flex-wrap: wrap;
+
+  @include respond-to('sm') {
+    flex-direction: column;
+    gap: 0.75rem;
+
+    button {
+      width: 100%;
+    }
+  }
 }
+

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Building2, Home, Briefcase, Store, Hotel, Factory, ArrowRight, ShieldCheck, Award } from 'lucide-react';
 import styles from './About.module.scss';
 
@@ -12,18 +13,7 @@ const SECTORS = [
 ];
 
 const About = ({ onOpenConsultation }) => {
-  const handleScrollTo = (id) => {
-    const el = document.getElementById(id);
-    if (el) {
-      const headerOffset = 80;
-      const elementPosition = el.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
-  };
+  const navigate = useNavigate();
 
   return (
     <section id="about" className={`section-padding ${styles.aboutSection}`}>
@@ -97,7 +87,7 @@ const About = ({ onOpenConsultation }) => {
               <button
                 type="button"
                 className="btn btn-primary-gold"
-                onClick={() => handleScrollTo('services')}
+                onClick={() => navigate('/services')}
               >
                 <span>Discover Our Services</span>
                 <ArrowRight size={16} />

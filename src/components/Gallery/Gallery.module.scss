@@ -326,3 +326,30 @@
   color: var(--color-text-main);
   margin: 0;
 }
+
+/* Mobile improvements */
+@include respond-to('sm') {
+  .filterTab {
+    padding: 0.55rem 0.9rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+  }
+
+  .modalDetails {
+    padding: 1.25rem;
+  }
+
+  .modalImageWrapper {
+    max-height: 220px;
+  }
+
+  .modalActions {
+    flex-direction: column;
+    gap: 0.75rem;
+
+    button {
+      width: 100%;
+    }
+  }
+}
+

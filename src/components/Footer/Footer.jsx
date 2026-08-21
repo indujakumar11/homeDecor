@@ -1,15 +1,16 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Logo from '../common/Logo';
-import { Phone, Mail, MapPin, ArrowUp, QrCode, Sparkles } from 'lucide-react';
+import { Phone, Mail, MapPin, ArrowUp, QrCode } from 'lucide-react';
 import styles from './Footer.module.scss';
 
 const NAV_LINKS = [
-  { name: 'Home', href: '#home' },
-  { name: 'About Us', href: '#about' },
-  { name: 'Services', href: '#services' },
-  { name: 'Selected Projects', href: '#projects' },
-  { name: 'Process & Method', href: '#process' },
-  { name: 'Contact Us', href: '#contact' },
+  { name: 'Home', href: '/' },
+  { name: 'About Us', href: '/about' },
+  { name: 'Services', href: '/services' },
+  { name: 'Selected Projects', href: '/projects' },
+  { name: 'Process & Method', href: '/process' },
+  { name: 'Contact Us', href: '/contact' },
 ];
 
 const SERVICE_LINKS = [
@@ -30,21 +31,6 @@ const Footer = ({ onOpenConsultation }) => {
       top: 0,
       behavior: 'smooth'
     });
-  };
-
-  const handleNavClick = (e, href) => {
-    e.preventDefault();
-    const targetId = href.replace('#', '');
-    const element = document.getElementById(targetId);
-    if (element) {
-      const headerOffset = 80;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
   };
 
   return (
@@ -116,13 +102,12 @@ const Footer = ({ onOpenConsultation }) => {
             <ul className={styles.linksList}>
               {NAV_LINKS.map((link) => (
                 <li key={link.name}>
-                  <a 
-                    href={link.href} 
-                    onClick={(e) => handleNavClick(e, link.href)}
+                  <Link 
+                    to={link.href} 
                     className={styles.footerLink}
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -134,13 +119,12 @@ const Footer = ({ onOpenConsultation }) => {
             <ul className={styles.linksList}>
               {SERVICE_LINKS.map((svc) => (
                 <li key={svc}>
-                  <a 
-                    href="#services" 
-                    onClick={(e) => handleNavClick(e, '#services')}
+                  <Link 
+                    to="/services" 
                     className={styles.footerLink}
                   >
                     {svc}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -167,7 +151,7 @@ const Footer = ({ onOpenConsultation }) => {
               </div>
             </div>
 
-            {/* Brochure QR Block inspired by the reference poster */}
+            {/* Brochure QR Block */}
             <div className={styles.qrCard}>
               <div className={styles.qrCodeIconBox}>
                 <QrCode size={38} className={styles.qrSvg} />

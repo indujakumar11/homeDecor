@@ -1,0 +1,55 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.pageHeader {
+  position: relative;
+  padding: 10rem 0 5rem 0; // padding to sit below the sticky Navbar
+  background-color: var(--color-black);
+  text-align: center;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(181, 138, 60, 0.15);
+
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(181, 138, 60, 0.12) 0%, transparent 70%);
+
+  @include respond-to('md') {
+    padding: 7.5rem 0 4rem 0;
+  }
+}
+
+.headerOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to bottom, transparent 65%, var(--color-black) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.headerContainer {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.title {
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.subtitle {
+  font-size: clamp(0.95rem, 1.5vw, 1.15rem);
+  color: var(--color-cream);
+  opacity: 0.85;
+  max-width: 600px;
+  margin: 0.5rem auto 0 auto;
+  line-height: 1.6;
+  font-weight: 300;
+}
