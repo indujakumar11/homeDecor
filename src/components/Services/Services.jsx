@@ -1,17 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { servicesData } from '../../data/servicesData';
 import { ArrowRight, Sparkles, Check, X, Calendar } from 'lucide-react';
+import CategoryCarousel from '../common/CategoryCarousel';
 import styles from './Services.module.scss';
 
 const Services = ({ onOpenConsultation }) => {
   const [selectedService, setSelectedService] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Track whether the modal was opened from the Home page carousel
+  const openedFromHomeRef = useRef(false);
+
+  useEffect(() => {
+    if (location.state && location.state.selectedServiceId) {
+      const matched = servicesData.find((s) => s.id === location.state.selectedServiceId);
+      if (matched) {
+        openedFromHomeRef.current = true;
+        setSelectedService(matched);
+        // Clear location state after opening to avoid reopening on refresh
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location]);
 
   const handleOpenDetail = (service) => {
+    openedFromHomeRef.current = false; // opened directly on Services page
     setSelectedService(service);
   };
 
   const handleCloseModal = () => {
     setSelectedService(null);
+    if (openedFromHomeRef.current) {
+      openedFromHomeRef.current = false;
+      navigate('/');
+    }
   };
 
   return (
@@ -25,6 +48,17 @@ const Services = ({ onOpenConsultation }) => {
           <p className="section-subtitle">
             Creative craftsmanship. Architectural thinking. Complete solutions.
           </p>
+        </div>
+
+        {/* Category Carousel Navigation Bar */}
+        <div style={{ marginBottom: '2.5rem' }}>
+          <CategoryCarousel
+            activeCategoryId={selectedService?.id || null}
+            onSelectCategory={(id) => {
+              const matched = servicesData.find((s) => s.id === id);
+              if (matched) setSelectedService(matched);
+            }}
+          />
         </div>
 
         {/* 9 Architectural Service Cards Grid */}
