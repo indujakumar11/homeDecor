@@ -6,7 +6,7 @@ export const servicesData = [
     subtitle: "Artistry in Three Dimensions",
     description: "3D murals, themed walls, texture art, corporate branding walls and more, crafted with architectural precision.",
     details: "From majestic wildlife and classical relief sculptures to abstract geometric textures and corporate heritage walls. We employ high-density sculpting composites, stone relief techniques, and metallic patina finishes tailored for luxury residences and corporate lobbies.",
-    image: "/assets/services/murals.jpg",
+    image: "assets/services/murals.jpg",
     features: [
       "Custom 3D Bas-Relief & High-Relief",
       "Themed Feature Walls & Accent Panels",
@@ -22,7 +22,7 @@ export const servicesData = [
     subtitle: "Durable Grandeur & Precision",
     description: "Life-size sculptures, busts, statues, art installations and decorative pieces made with weather-resistant fiberglass.",
     details: "Precision-molded and hand-finished FRP (Fiberglass Reinforced Polymer) sculptures. Ideal for grand indoor atriums, landscaped gardens, temple architecture, and commercial landmarks, offering incredible structural strength with lightweight versatility.",
-    image: "/assets/services/frp-sculptures.jpg",
+    image: "assets/services/frp-sculptures.jpg",
     features: [
       "Life-Size Figurines & Deities (Ganesha, Buddha, Devas)",
       "Contemporary Abstract Sculptures",
@@ -38,7 +38,7 @@ export const servicesData = [
     subtitle: "Classical Elegance Meets Durability",
     description: "Premium marble powder + resin sculptures with fine detailing and exceptional durability for timeless aesthetics.",
     details: "Cast using bonded micro-fine Italian and Makrana marble stone powder with specialized polymer binders. Delivers the authentic cool touch, substantial weight, and museum-grade definition of hand-carved stone with superior chip resistance.",
-    image: "/assets/services/marble-sculptures.jpg",
+    image: "assets/services/marble-sculptures.jpg",
     features: [
       "Classical Greek & Roman Busts",
       "Sacred Temple Sculptures & Pedestals",
@@ -54,7 +54,7 @@ export const servicesData = [
     subtitle: "Computational Architecture & Form",
     description: "Parametric walls, 3D logo installations, world maps, timeline walls and custom feature designs.",
     details: "Integrating computational algorithms with CNC precision woodworking and acrylic fabrication. From undulating wooden wave walls to backlit layered world maps and complex architectural ceiling baffles.",
-    image: "/assets/services/parametric.jpg",
+    image: "assets/services/parametric.jpg",
     features: [
       "Layered Backlit 3D World Maps",
       "Undulating Wooden Wave Walls & Ribs",
@@ -70,7 +70,7 @@ export const servicesData = [
     subtitle: "Seamless Turnkey Interiors",
     description: "Gypsum, louvers, WPC, MDF, false ceilings, partitions and comprehensive turnkey interior craftsmanship.",
     details: "Complete interior fit-outs combining fluted wooden louvers, charcoal acoustic panels, concealed LED cove lighting, custom entertainment units, and architectural partitions for high-end residential and commercial spaces.",
-    image: "/assets/services/interior-decor.jpg",
+    image: "assets/services/interior-decor.jpg",
     features: [
       "Designer Fluted Louvers & WPC Cladding",
       "Multi-Tiered Gypsum False Ceilings",

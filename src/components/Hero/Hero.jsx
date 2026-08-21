@@ -21,7 +21,7 @@ const Hero = ({ onOpenConsultation }) => {
       {/* Background Image with Dark Vignette & Parallax feel */}
       <div className={styles.heroBgWrapper}>
         <img 
-          src="/assets/hero/hero-bg.jpg" 
+          src="assets/hero/hero-bg.jpg" 
           alt="Black Shades Luxury Interior & Architectural Decor" 
           className={styles.heroBgImage} 
         />

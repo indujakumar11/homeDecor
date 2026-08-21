@@ -7,7 +7,7 @@ const CTA = ({ onOpenConsultation }) => {
     <section className={styles.ctaSection}>
       <div className={styles.ctaBg}>
         <img 
-          src="/assets/services/murals.jpg" 
+          src="assets/services/murals.jpg" 
           alt="Luxury Architecture and Relief Murals" 
           className={styles.ctaBgImage}
           loading="lazy" 

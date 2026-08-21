@@ -20,7 +20,7 @@ const Showcase = ({ onOpenConsultation }) => {
     <section className={styles.showcaseSection}>
       <div className={styles.showcaseBg}>
         <img 
-          src="/assets/hero/hero-bg.jpg" 
+          src="assets/hero/hero-bg.jpg" 
           alt="Black Shades Architectural Masterpiece" 
           className={styles.bgImg}
           loading="lazy"

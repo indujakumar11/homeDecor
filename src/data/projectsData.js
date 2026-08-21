@@ -14,7 +14,7 @@ export const projectsData = [
     title: "Celestial Gallop Bas-Relief Wall",
     category: "Murals",
     location: "ECR Luxury Villa, Chennai",
-    image: "/assets/services/murals.jpg",
+    image: "assets/services/murals.jpg",
     description: "An expansive 24-foot hand-sculpted bronze and gold leaf relief mural capturing galloping wild horses on dark textured stone.",
     scope: "3D Relief Sculpting, Metallic Patina, Concealed Top Lighting",
     year: "2025"
@@ -24,7 +24,7 @@ export const projectsData = [
     title: "Contemporary Villa Grand Lounge",
     category: "Interior Décor",
     location: "Anna Nagar, Chennai",
-    image: "/assets/services/interior-decor.jpg",
+    image: "assets/services/interior-decor.jpg",
     description: "Turnkey luxury living suite with vertical walnut louvers, Italian black marble media facade, and warm cove backlighting.",
     scope: "WPC Louvers, False Ceiling, Italian Marble Cladding, Custom Joinery",
     year: "2025"
@@ -34,7 +34,7 @@ export const projectsData = [
     title: "Sacred Ganesha FRP Art Installation",
     category: "Sculptures",
     location: "Private Residence, Boat Club Road, Chennai",
-    image: "/assets/services/frp-sculptures.jpg",
+    image: "assets/services/frp-sculptures.jpg",
     description: "Life-size contemporary Lord Ganesha sculpture crafted in reinforced fiberglass with charcoal stone texture and 24K gold accents.",
     scope: "Custom 3D Sculpting, FRP Molding, Gold Foil Detail, Pedestal Design",
     year: "2025"
@@ -44,7 +44,7 @@ export const projectsData = [
     title: "Parametric Backlit World Map",
     category: "Corporate Interiors",
     location: "OMR Tech Park, Chennai",
-    image: "/assets/services/parametric.jpg",
+    image: "assets/services/parametric.jpg",
     description: "Multilayered walnut wood and champagne acrylic world map installation with zoned LED backlight for a global executive suite.",
     scope: "Parametric CNC Carving, Smart Dimming LED, Acoustic Wall Prep",
     year: "2025"
@@ -54,7 +54,7 @@ export const projectsData = [
     title: "Classical Philosopher Stone Powder Bust",
     category: "Sculptures",
     location: "Private Gallery & Penthouse, Nungambakkam",
-    image: "/assets/services/marble-sculptures.jpg",
+    image: "assets/services/marble-sculptures.jpg",
     description: "Precision-cast Makrana marble stone powder bust with antique wood plinth, capturing fine neoclassical drapery and texture.",
     scope: "Bonded Marble Powder Casting, Hand Honing, Wood Base Fabrication",
     year: "2024"
@@ -94,7 +94,7 @@ export const projectsData = [
     title: "Architectural Geometric Facade Relief",
     category: "Interior Décor",
     location: "Alwarpet Residence, Chennai",
-    image: "/assets/hero/hero-bg.jpg",
+    image: "assets/hero/hero-bg.jpg",
     description: "Full-height geometric fractured stone wall with perimeter gold cove lighting, creating a dramatic architectural statement.",
     scope: "High Density Composite Carving, Concealed LED Channels, Dark Patina",
     year: "2025"

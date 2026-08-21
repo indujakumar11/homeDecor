@@ -34,7 +34,7 @@ const About = ({ onOpenConsultation }) => {
             <div className={styles.imageFrameOuter}>
               <div className={styles.imageWrapper}>
                 <img 
-                  src="/assets/services/murals.jpg" 
+                  src="assets/services/murals.jpg" 
                   alt="Black Shades Master Craftsmen and Sculptural Artwork" 
                   className={styles.aboutImage}
                 />
