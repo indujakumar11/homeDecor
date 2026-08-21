@@ -1,0 +1,328 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.gallerySection {
+  background: var(--color-black);
+  position: relative;
+}
+
+.filterTabsWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-bottom: 3.5rem;
+  flex-wrap: wrap;
+
+  @include respond-to('md') {
+    gap: 0.4rem;
+    margin-bottom: 2rem;
+  }
+}
+
+.filterTab {
+  @include button-reset;
+  position: relative;
+  padding: 0.65rem 1.35rem;
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--color-cream);
+  opacity: 0.75;
+  border-radius: 2px;
+  border: 1px solid rgba(181, 138, 60, 0.15);
+  background: rgba(18, 18, 18, 0.6);
+  transition: all var(--transition-fast);
+
+  &:hover {
+    opacity: 1;
+    color: #ffffff;
+    border-color: rgba(181, 138, 60, 0.4);
+    background: rgba(181, 138, 60, 0.1);
+  }
+
+  &.activeTab {
+    opacity: 1;
+    color: #000000;
+    font-weight: 700;
+    background: linear-gradient(135deg, #d4af63 0%, #b58a3c 100%);
+    border-color: var(--color-gold-light);
+    box-shadow: 0 4px 15px rgba(181, 138, 60, 0.35);
+  }
+}
+
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.75rem;
+
+  @include respond-to('lg') {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-to('sm') {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.galleryItem {
+  position: relative;
+  background: #111111;
+  border: 1px solid rgba(181, 138, 60, 0.22);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+
+  &:hover, &:focus-visible {
+    transform: translateY(-6px);
+    border-color: var(--color-gold-light);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.85), 0 0 25px rgba(181, 138, 60, 0.2);
+
+    .projectImage {
+      transform: scale(1.06);
+    }
+
+    .viewAction {
+      color: var(--color-gold-light);
+      .actionArrow {
+        transform: translateX(4px);
+      }
+    }
+  }
+
+  &.featuredItem {
+    @media (min-width: 1025px) {
+      grid-column: span 1;
+    }
+  }
+}
+
+.imageContainer {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #161616;
+}
+
+.projectImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-luxury);
+}
+
+.overlayGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(12, 12, 12, 0.9) 100%);
+}
+
+.categoryBadge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-gold-light);
+  background: rgba(10, 10, 10, 0.85);
+  border: 1px solid rgba(181, 138, 60, 0.4);
+  padding: 0.25rem 0.6rem;
+  border-radius: 2px;
+  backdrop-filter: blur(6px);
+}
+
+.projectInfo {
+  padding: 1.4rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.locationTag {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  color: var(--color-gold-light);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.08em;
+}
+
+.pinIcon {
+  color: var(--color-gold);
+}
+
+.projectTitle {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-white);
+  line-height: 1.35;
+  margin-bottom: 0.6rem;
+}
+
+.projectDesc {
+  font-size: 0.84rem;
+  color: #9f9b90;
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+  flex: 1;
+}
+
+.viewAction {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--color-cream);
+  transition: all var(--transition-fast);
+}
+
+.actionArrow {
+  transition: transform var(--transition-fast);
+}
+
+/* Lightbox Modal */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(10px);
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.modalBox {
+  position: relative;
+  width: 100%;
+  max-width: 820px;
+  background: #111111;
+  border: 1px solid var(--color-gold-light);
+  border-radius: 2px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95);
+  overflow: hidden;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalCloseBtn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  @include button-reset;
+  color: var(--color-gold-light);
+  background: rgba(12, 12, 12, 0.85);
+  border: 1px solid rgba(181, 138, 60, 0.4);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+
+  &:hover {
+    background: var(--color-gold);
+    color: #000;
+  }
+}
+
+.modalImageWrapper {
+  width: 100%;
+  max-height: 400px;
+  background: #000;
+  overflow: hidden;
+}
+
+.modalImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modalDetails {
+  padding: 1.75rem 2rem;
+}
+
+.modalMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.modalCategoryBadge {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--color-gold-light);
+  background: rgba(181, 138, 60, 0.15);
+  padding: 0.2rem 0.6rem;
+  border: 1px solid rgba(181, 138, 60, 0.3);
+}
+
+.modalLocation {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--color-cream);
+}
+
+.modalYear {
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+}
+
+.modalProjectTitle {
+  font-size: 1.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.modalProjectDesc {
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--color-cream);
+  opacity: 0.9;
+  margin-bottom: 1.5rem;
+}
+
+.scopeBox {
+  background: rgba(18, 18, 18, 0.8);
+  border-left: 3px solid var(--color-gold);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.scopeLabel {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--color-gold-light);
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.scopeText {
+  font-size: 0.85rem;
+  color: var(--color-text-main);
+  margin: 0;
+}

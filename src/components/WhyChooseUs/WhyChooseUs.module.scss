@@ -1,0 +1,166 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.whySection {
+  background: #0d0d0d;
+  position: relative;
+  border-top: 1px solid rgba(181, 138, 60, 0.15);
+  border-bottom: 1px solid rgba(181, 138, 60, 0.15);
+}
+
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-bottom: 3.5rem;
+
+  @include respond-to('lg') {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include respond-to('sm') {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.featureCard {
+  position: relative;
+  background: #141414;
+  border: 1px solid rgba(181, 138, 60, 0.22);
+  border-radius: 2px;
+  padding: 2.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+
+  &:hover {
+    transform: translateY(-5px);
+    border-color: var(--color-gold-light);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8), 0 0 20px rgba(181, 138, 60, 0.18);
+
+    .iconCircle {
+      background: rgba(181, 138, 60, 0.18);
+      border-color: var(--color-gold-light);
+      color: #ffffff;
+      transform: scale(1.05);
+    }
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.iconCircle {
+  width: 52px;
+  height: 52px;
+  border-radius: 2px;
+  border: 1px solid rgba(181, 138, 60, 0.35);
+  background: rgba(22, 22, 22, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-gold-light);
+  transition: all var(--transition-smooth);
+}
+
+.stepNum {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--color-gold);
+  opacity: 0.6;
+}
+
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.featureTitle {
+  font-family: var(--font-display);
+  font-size: 0.96rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--color-white);
+  line-height: 1.4;
+  margin-bottom: 0.85rem;
+  text-transform: uppercase;
+}
+
+.featureSub {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--color-gold-light);
+  margin-top: 0.2rem;
+}
+
+.featureDesc {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: #a49f94;
+  font-weight: 300;
+}
+
+.impactBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(18, 18, 18, 0.95);
+  border: 1px solid rgba(181, 138, 60, 0.35);
+  border-radius: 2px;
+  padding: 1.75rem 2.25rem;
+  gap: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+
+  @include respond-to('md') {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+  }
+}
+
+.quoteBlock {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  @include respond-to('md') {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+}
+
+.bannerIcon {
+  color: var(--color-gold-light);
+  flex-shrink: 0;
+}
+
+.quoteText {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-white);
+  margin: 0;
+}
+
+.bannerAction {
+  flex-shrink: 0;
+
+  @include respond-to('md') {
+    width: 100%;
+    button {
+      width: 100%;
+    }
+  }
+}

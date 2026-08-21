@@ -1,0 +1,260 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.footer {
+  background: #060606;
+  position: relative;
+  padding-top: 5rem;
+  padding-bottom: 2rem;
+  border-top: 1px solid rgba(181, 138, 60, 0.25);
+}
+
+.topGoldBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-gold-light), var(--color-gold), transparent);
+}
+
+.footerMainGrid {
+  display: grid;
+  grid-template-columns: 1.4fr 0.8fr 1.2fr 1.2fr;
+  gap: 3.5rem 2rem;
+  padding-bottom: 4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  @include respond-to('xl') {
+    grid-template-columns: 1.2fr 0.8fr 1fr 1fr;
+  }
+
+  @include respond-to('lg') {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 3rem 2rem;
+  }
+
+  @include respond-to('sm') {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+}
+
+.brandCol {
+  display: flex;
+  flex-direction: column;
+}
+
+.brandMission {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: #9f9b90;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  font-weight: 300;
+}
+
+.brandSignature {
+  display: inline-block;
+  margin-bottom: 1.75rem;
+}
+
+.sigTag {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--color-gold-light);
+  background: rgba(181, 138, 60, 0.1);
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(181, 138, 60, 0.25);
+  border-radius: 2px;
+}
+
+.socialRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.socialBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 2px;
+  border: 1px solid rgba(181, 138, 60, 0.3);
+  background: rgba(18, 18, 18, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-cream);
+  transition: all var(--transition-fast);
+
+  &:hover {
+    color: #ffffff;
+    border-color: var(--color-gold-light);
+    background: var(--color-gold);
+    color: #000;
+    transform: translateY(-2px);
+  }
+}
+
+.colTitle {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--color-gold-light);
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+}
+
+.linksList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.footerLink {
+  font-size: 0.86rem;
+  color: #a8a49a;
+  font-weight: 300;
+  transition: all var(--transition-fast);
+  display: inline-block;
+
+  &:hover {
+    color: var(--color-gold-light);
+    transform: translateX(4px);
+  }
+}
+
+.footerContactList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-bottom: 1.75rem;
+}
+
+.footerContactItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.86rem;
+  color: #a8a49a;
+  line-height: 1.5;
+  transition: color var(--transition-fast);
+
+  .fIcon {
+    color: var(--color-gold);
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+  }
+
+  &:hover {
+    color: var(--color-white);
+  }
+}
+
+.qrCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  background: rgba(18, 18, 18, 0.9);
+  border: 1px solid rgba(181, 138, 60, 0.3);
+  border-radius: 2px;
+}
+
+.qrCodeIconBox {
+  width: 50px;
+  height: 50px;
+  background: #ffffff;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000000;
+}
+
+.qrSvg {
+  width: 38px;
+  height: 38px;
+}
+
+.qrText {
+  display: flex;
+  flex-direction: column;
+}
+
+.qrTitle {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--color-gold-light);
+}
+
+.qrSub {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--color-cream);
+  opacity: 0.8;
+}
+
+.bottomBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 2rem;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+
+  @include respond-to('sm') {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+.copyrightText {
+  font-size: 0.82rem;
+  color: #7b776f;
+  margin: 0;
+
+  strong {
+    color: var(--color-cream);
+    font-weight: 500;
+  }
+}
+
+.bottomRight {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.cityTag {
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  color: var(--color-gold-light);
+  letter-spacing: 0.1em;
+}
+
+.backToTopBtn {
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--color-cream);
+  transition: color var(--transition-fast);
+
+  &:hover {
+    color: var(--color-gold-bright);
+  }
+}

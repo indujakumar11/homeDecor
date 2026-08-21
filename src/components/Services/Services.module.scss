@@ -1,0 +1,317 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.servicesSection {
+  background: #0a0a0a;
+  position: relative;
+  border-top: 1px solid rgba(181, 138, 60, 0.15);
+  border-bottom: 1px solid rgba(181, 138, 60, 0.15);
+}
+
+.servicesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+
+  @include respond-to('lg') {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.75rem;
+  }
+
+  @include respond-to('sm') {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.serviceCard {
+  position: relative;
+  background: #121212;
+  border: 1px solid rgba(181, 138, 60, 0.28);
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  outline: none;
+  transition: transform var(--transition-smooth), border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+
+  &:hover, &:focus-visible {
+    transform: translateY(-6px);
+    border-color: var(--color-gold-light);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8), 0 0 25px rgba(181, 138, 60, 0.25);
+
+    .cardImage {
+      transform: scale(1.06);
+    }
+
+    .arrowCircle {
+      background: var(--color-gold);
+      color: #000000;
+      transform: translateX(4px);
+    }
+
+    .viewDetailsText {
+      color: var(--color-gold-light);
+    }
+  }
+}
+
+.cardImageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #181818;
+}
+
+.cardImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-luxury);
+}
+
+.imageOverlayGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(18, 18, 18, 0.95) 100%);
+}
+
+.numberBadge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--color-gold-light);
+  background: rgba(12, 12, 12, 0.85);
+  border: 1px solid rgba(181, 138, 60, 0.4);
+  padding: 0.25rem 0.65rem;
+  border-radius: 2px;
+  backdrop-filter: blur(6px);
+}
+
+.cardBody {
+  padding: 1.5rem 1.6rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.cardHeaderRow {
+  margin-bottom: 0.75rem;
+}
+
+.cardTitle {
+  font-family: var(--font-serif);
+  font-size: 1.22rem;
+  font-weight: 600;
+  color: var(--color-white);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+}
+
+.cardDescription {
+  font-size: 0.88rem;
+  color: #a8a398;
+  line-height: 1.65;
+  margin-bottom: 1.5rem;
+  font-weight: 300;
+  flex: 1;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.viewDetailsText {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--color-cream);
+  transition: color var(--transition-fast);
+}
+
+.arrowCircle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(181, 138, 60, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-gold-light);
+  background: rgba(25, 25, 25, 0.7);
+  transition: all var(--transition-fast);
+}
+
+/* Modal Styling */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modalContainer {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  background: #111111;
+  border: 1px solid var(--color-gold-light);
+  border-radius: 2px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(181, 138, 60, 0.2);
+  overflow: hidden;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalCloseBtn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  @include button-reset;
+  color: var(--color-gold-light);
+  background: rgba(15, 15, 15, 0.85);
+  border: 1px solid rgba(181, 138, 60, 0.35);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--color-gold);
+    color: #000;
+  }
+}
+
+.modalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+
+  @include respond-to('md') {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modalImageCol {
+  position: relative;
+  min-height: 320px;
+  background: #161616;
+
+  @include respond-to('md') {
+    min-height: 220px;
+  }
+}
+
+.modalImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modalImgOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 60%, rgba(17, 17, 17, 0.95) 100%);
+}
+
+.modalNumber {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.25rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--color-gold-light);
+  background: rgba(8, 8, 8, 0.85);
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--color-gold);
+}
+
+.modalContentCol {
+  padding: 2.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalTitle {
+  font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+  margin-bottom: 1rem;
+  line-height: 1.25;
+}
+
+.modalDetailsText {
+  font-size: 0.92rem;
+  line-height: 1.75;
+  color: var(--color-cream);
+  opacity: 0.9;
+  margin-bottom: 1.5rem;
+}
+
+.featuresBox {
+  background: rgba(18, 18, 18, 0.7);
+  border: 1px solid rgba(181, 138, 60, 0.2);
+  padding: 1.2rem;
+  margin-bottom: 2rem;
+  border-radius: 2px;
+}
+
+.featuresHeading {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--color-gold-light);
+  margin-bottom: 0.85rem;
+}
+
+.featuresList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--color-text-main);
+
+  .checkIcon {
+    color: var(--color-gold);
+    flex-shrink: 0;
+  }
+}
+
+.modalActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: auto;
+  flex-wrap: wrap;
+}

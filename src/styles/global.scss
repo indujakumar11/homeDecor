@@ -1,0 +1,289 @@
+@use './variables' as *;
+@use './mixins' as *;
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+  background-color: var(--color-black);
+  color: var(--color-text-main);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-color: var(--color-black);
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(181, 138, 60, 0.04) 0%, transparent 60%),
+    radial-gradient(circle at 100% 50%, rgba(181, 138, 60, 0.025) 0%, transparent 50%),
+    linear-gradient(to bottom, #080808 0%, #0d0d0d 50%, #080808 100%);
+  color: var(--color-text-main);
+  line-height: 1.65;
+}
+
+/* Custom Luxury Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090909;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a251c;
+  border-radius: 4px;
+  border: 1px solid rgba(181, 138, 60, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+/* Selection Color */
+::selection {
+  background: rgba(181, 138, 60, 0.4);
+  color: #ffffff;
+}
+
+/* Typography Base */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-white);
+  letter-spacing: 0.02em;
+}
+
+p {
+  color: var(--color-text-muted);
+  font-weight: 300;
+  font-size: 1rem;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+button {
+  font-family: var(--font-display);
+}
+
+/* Container Utility */
+.container {
+  @include container;
+}
+
+/* Luxury Eyebrow / Tag */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-gold-light);
+  margin-bottom: 0.85rem;
+
+  &::before, &::after {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-gold));
+  }
+
+  &::after {
+    background: linear-gradient(90deg, var(--color-gold), transparent);
+  }
+
+  &.no-decor {
+    &::before, &::after {
+      display: none;
+    }
+  }
+}
+
+/* Section Header Structure */
+.section-header {
+  @include section-header;
+
+  .section-title {
+    font-size: clamp(1.9rem, 3.8vw, 3rem);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+
+  .section-subtitle {
+    font-size: clamp(0.95rem, 1.4vw, 1.125rem);
+    color: var(--color-cream);
+    opacity: 0.85;
+    max-width: 620px;
+    margin: 0 auto;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+}
+
+/* Gold Gradient Text Class */
+.gold-text {
+  @include gold-text;
+}
+
+.gold-text-subtle {
+  @include gold-text-subtle;
+}
+
+/* Decorative Gold Dividers */
+.gold-divider {
+  width: 70px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-gold-light), transparent);
+  margin: 1.5rem auto;
+}
+
+.gold-separator-full {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(181, 138, 60, 0.35), transparent);
+}
+
+/* Luxury Interactive Buttons */
+.btn {
+  @include button-reset;
+  padding: 0.95rem 2rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  position: relative;
+  transition: all var(--transition-smooth);
+  overflow: hidden;
+  border-radius: 2px;
+  gap: 0.65rem;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.6s ease;
+  }
+
+  &:hover::before {
+    left: 100%;
+  }
+}
+
+.btn-primary-gold {
+  background: linear-gradient(135deg, #d4af63 0%, #b58a3c 50%, #9a7329 100%);
+  color: #080808;
+  border: 1px solid #e2c079;
+  box-shadow: 0 4px 18px rgba(181, 138, 60, 0.28);
+  font-weight: 700;
+
+  &:hover {
+    background: linear-gradient(135deg, #e4c47e 0%, #c49948 50%, #aa8033 100%);
+    box-shadow: 0 6px 26px rgba(212, 175, 99, 0.45);
+    transform: translateY(-2px);
+    color: #000;
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.btn-outline-gold {
+  background: rgba(18, 18, 18, 0.7);
+  color: var(--color-cream);
+  border: 1px solid rgba(181, 138, 60, 0.45);
+  backdrop-filter: blur(8px);
+
+  &:hover {
+    border-color: var(--color-gold-light);
+    color: #ffffff;
+    background: rgba(181, 138, 60, 0.12);
+    box-shadow: 0 0 20px rgba(181, 138, 60, 0.2);
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.btn-ghost-gold {
+  background: transparent;
+  color: var(--color-gold-light);
+  border: 1px solid transparent;
+  padding: 0.6rem 1rem;
+  letter-spacing: 0.12em;
+
+  &:hover {
+    color: #ffffff;
+    border-bottom-color: var(--color-gold);
+    gap: 0.9rem;
+  }
+}
+
+/* Section Spacing */
+.section-padding {
+  padding: 7rem 0;
+
+  @include respond-to('lg') {
+    padding: 5.5rem 0;
+  }
+
+  @include respond-to('md') {
+    padding: 4rem 0;
+  }
+}
+
+/* Subtle Architectural Grid Lines Overlay */
+.grid-bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(rgba(181, 138, 60, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(181, 138, 60, 0.03) 1px, transparent 1px);
+  background-size: 80px 80px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

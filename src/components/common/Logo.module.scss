@@ -1,0 +1,123 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.brandLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.95rem;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: transform var(--transition-fast);
+
+  &:hover {
+    .symbolWrapper {
+      transform: scale(1.04);
+      filter: drop-shadow(0 0 12px rgba(212, 175, 99, 0.4));
+    }
+  }
+
+  &.small {
+    .symbolWrapper {
+      width: 38px;
+      height: 38px;
+    }
+    .brandTitle {
+      font-size: 1.15rem;
+    }
+    .brandSub {
+      font-size: 0.62rem;
+      letter-spacing: 0.28em;
+    }
+  }
+
+  &.medium {
+    .symbolWrapper {
+      width: 46px;
+      height: 46px;
+    }
+    .brandTitle {
+      font-size: 1.38rem;
+    }
+    .brandSub {
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+    }
+  }
+
+  &.large {
+    .symbolWrapper {
+      width: 62px;
+      height: 62px;
+    }
+    .brandTitle {
+      font-size: 1.85rem;
+    }
+    .brandSub {
+      font-size: 0.88rem;
+      letter-spacing: 0.35em;
+    }
+  }
+}
+
+.symbolWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-smooth);
+}
+
+.logoSvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.textWrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.05;
+}
+
+.brandTitle {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: var(--color-white);
+  letter-spacing: 0.08em;
+  @include gold-text;
+}
+
+.subtitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.18rem;
+}
+
+.dash {
+  display: inline-block;
+  width: 10px;
+  height: 1px;
+  background: var(--color-gold);
+  opacity: 0.7;
+}
+
+.brandSub {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--color-cream);
+  text-transform: uppercase;
+  opacity: 0.95;
+}
+
+.brandTagline {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--color-gold-light);
+  margin-top: 0.35rem;
+  text-transform: uppercase;
+}

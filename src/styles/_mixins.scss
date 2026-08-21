@@ -1,0 +1,89 @@
+@use './variables' as *;
+
+// Responsive Breakpoint Mixin
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == 'sm' {
+    @media (max-width: #{$breakpoint-sm}) { @content; }
+  } @else if $breakpoint == 'md' {
+    @media (max-width: #{$breakpoint-md}) { @content; }
+  } @else if $breakpoint == 'lg' {
+    @media (max-width: #{$breakpoint-lg}) { @content; }
+  } @else if $breakpoint == 'xl' {
+    @media (max-width: #{$breakpoint-xl}) { @content; }
+  } @else if $breakpoint == '2xl' {
+    @media (max-width: #{$breakpoint-2xl}) { @content; }
+  } @else {
+    @media (max-width: #{$breakpoint}) { @content; }
+  }
+}
+
+// Gold Metallic Gradient Text
+@mixin gold-text {
+  background: linear-gradient(135deg, #f7dfa5 0%, #d4af63 45%, #b58a3c 75%, #8e6824 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+// Subtle Gold Gradient Text
+@mixin gold-text-subtle {
+  background: linear-gradient(135deg, #ffffff 0%, #e8dfcf 50%, #d4af63 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+// Luxury Glass Effect
+@mixin glass-panel($opacity: 0.82, $blur: 16px) {
+  background: rgba(12, 12, 12, $opacity);
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+  border: 1px solid var(--color-dark-border);
+}
+
+// Gold Border Accent
+@mixin gold-border($width: 1px, $opacity: 0.25) {
+  border: #{$width} solid rgba(181, 138, 60, $opacity);
+}
+
+// Section Container
+@mixin container {
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+
+  @include respond-to('md') {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+// Section Header Layout
+@mixin section-header {
+  text-align: center;
+  max-width: 780px;
+  margin: 0 auto 3.5rem auto;
+
+  @include respond-to('md') {
+    margin-bottom: 2.5rem;
+  }
+}
+
+// Button Reset
+@mixin button-reset {
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

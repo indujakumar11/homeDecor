@@ -1,0 +1,213 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(10px);
+  z-index: 2200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: modalFadeIn 0.25s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modalContent {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  background: #111111;
+  border: 1px solid var(--color-gold-light);
+  border-radius: 2px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 30px rgba(181, 138, 60, 0.25);
+  padding: 2.5rem;
+  max-height: 90vh;
+  overflow-y: auto;
+
+  @include respond-to('md') {
+    padding: 1.75rem 1.25rem;
+  }
+}
+
+.closeButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  @include button-reset;
+  color: var(--color-gold-light);
+  background: rgba(18, 18, 18, 0.8);
+  border: 1px solid rgba(181, 138, 60, 0.3);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--color-gold);
+    color: #000;
+  }
+}
+
+.modalHeader {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.modalTitle {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  margin-bottom: 0.5rem;
+}
+
+.modalSubtitle {
+  font-size: 0.88rem;
+  color: var(--color-cream);
+  opacity: 0.85;
+  font-weight: 300;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.consultForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @include respond-to('sm') {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.label {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--color-cream);
+  text-transform: uppercase;
+}
+
+.input, .select, .textarea {
+  width: 100%;
+  background: #0d0d0d;
+  border: 1px solid rgba(181, 138, 60, 0.25);
+  border-radius: 2px;
+  padding: 0.75rem 0.9rem;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  color: var(--color-white);
+  outline: none;
+  transition: all var(--transition-fast);
+
+  &:focus {
+    border-color: var(--color-gold-light);
+    box-shadow: 0 0 10px rgba(181, 138, 60, 0.25);
+    background: #141414;
+  }
+
+  &::placeholder {
+    color: #55514b;
+  }
+}
+
+.select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b58a3c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+}
+
+.textarea {
+  resize: vertical;
+}
+
+.inputError {
+  border-color: #e06c75 !important;
+}
+
+.errorMsg {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: #ff7b72;
+}
+
+.formFooter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 1rem;
+}
+
+.footerNote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+
+  .noteIcon {
+    color: var(--color-gold);
+  }
+
+  strong {
+    color: var(--color-gold-light);
+  }
+}
+
+.successWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.successIcon {
+  color: var(--color-gold-bright);
+  margin-bottom: 1.25rem;
+}
+
+.successHeading {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--color-white);
+}
+
+.successText {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--color-cream);
+  margin-bottom: 2rem;
+  max-width: 480px;
+
+  strong {
+    color: var(--color-gold-light);
+  }
+}
