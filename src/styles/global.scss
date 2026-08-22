@@ -352,8 +352,8 @@ button {
 /* Category Carousel Top Wrapper */
 .carousel-top-wrapper {
   padding-top: var(--header-height);
-  background: #090909;
-  border-bottom: 1px solid rgba(181, 138, 60, 0.12);
+  background: #ffffff;
+  border-bottom: 1px solid rgba(181, 138, 60, 0.2);
 
   @media (max-width: 768px) {
     padding-top: var(--header-height-mobile);

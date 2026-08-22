@@ -3,7 +3,7 @@
 
 .carouselSection {
   position: relative;
-  background: transparent;
+  background: #ffffff;
   padding: 1.5rem 0;
   z-index: 10;
 }
@@ -63,7 +63,7 @@
     }
 
     .categoryTitle {
-      color: #ffffff;
+      color: #1a1a1a;
       opacity: 1;
     }
   }
@@ -72,11 +72,11 @@
     .imageRing {
       border-color: var(--color-gold);
       box-shadow: 0 0 25px rgba(181, 138, 60, 0.5);
-      background: rgba(181, 138, 60, 0.1);
+      background: rgba(181, 138, 60, 0.08);
     }
 
     .categoryTitle {
-      color: var(--color-gold-light);
+      color: var(--color-gold);
       font-weight: 700;
       opacity: 1;
     }
@@ -103,8 +103,8 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 1.5px solid rgba(181, 138, 60, 0.25);
-  background: #111111;
+  border: 1.5px solid rgba(181, 138, 60, 0.35);
+  background: #f5f5f5;
   padding: 4px;
   display: flex;
   align-items: center;
@@ -126,8 +126,8 @@
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: var(--color-cream);
-  opacity: 0.8;
+  color: #1a1a1a;
+  opacity: 0.85;
   line-height: 1.35;
   display: block;
   width: 100%;
@@ -145,15 +145,15 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 1px solid rgba(181, 138, 60, 0.35);
-  background: rgba(18, 18, 18, 0.85);
-  color: var(--color-gold-light);
+  border: 1px solid rgba(181, 138, 60, 0.4);
+  background: #f8f8f8;
+  color: #444444;
   transition: all var(--transition-fast);
   z-index: 2;
 
   &:hover {
     background: var(--color-gold);
-    color: #000000;
+    color: #ffffff;
     border-color: var(--color-gold-light);
     box-shadow: 0 0 12px rgba(181, 138, 60, 0.4);
   }
