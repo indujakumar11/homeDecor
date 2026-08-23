@@ -1,0 +1,126 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2rem, 6vw, 3.5rem);
+  background: var(--color-black);
+  will-change: transform;
+  overflow: hidden;
+}
+
+.glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 50% 40%, rgba(181, 138, 60, 0.09) 0%, transparent 60%),
+    linear-gradient(to bottom, #080808 0%, #0d0d0d 50%, #080808 100%);
+}
+
+.brandBlock {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.markWrap {
+  width: clamp(56px, 9vw, 84px);
+  height: clamp(56px, 9vw, 84px);
+}
+
+.mark {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 0 18px rgba(181, 138, 60, 0.25));
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  letter-spacing: 0.1em;
+  @include gold-text;
+}
+
+.subtitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+}
+
+.dash {
+  display: inline-block;
+  width: 16px;
+  height: 1px;
+  background: var(--color-gold);
+  opacity: 0.7;
+}
+
+.sub {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(0.68rem, 1.6vw, 0.82rem);
+  letter-spacing: 0.32em;
+  color: var(--color-cream);
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.progressBlock {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.percent {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--color-gold-light);
+  font-variant-numeric: tabular-nums;
+  min-width: 2.6em;
+  text-align: center;
+}
+
+.lineTrack {
+  position: relative;
+  width: clamp(120px, 22vw, 180px);
+  height: 1px;
+  background: var(--color-dark-border-subtle);
+  overflow: hidden;
+}
+
+.lineFill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--color-gold-dark), var(--color-gold-light));
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay {
+    will-change: auto;
+  }
+}

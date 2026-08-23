@@ -13,6 +13,7 @@ import ConsultationModal from './components/ConsultationModal/ConsultationModal'
 import ScrollToTop from './components/common/ScrollToTop';
 import SmoothScrollProvider from './components/SmoothScrollProvider';
 import PageTransition from './components/PageTransition/PageTransition';
+import Preloader from './components/Preloader/Preloader';
 import AdminApp from './admin/AdminApp';
 
 // The public marketing site: Navbar/Footer/WhatsApp/Lenis/GSAP page
@@ -33,6 +34,7 @@ function PublicSite() {
   return (
     <>
       <SmoothScrollProvider />
+      <Preloader />
       <div className="app-root">
         {/* Sticky Header Navigation */}
         <Navbar onOpenConsultation={handleOpenConsultation} />

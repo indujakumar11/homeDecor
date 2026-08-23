@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar, CheckCircle2, Phone, Mail, Clock, AlertCircle } from 'lucide-react';
 import { getLenis } from '../../lib/smoothScroll';
+import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import styles from './ConsultationModal.module.scss';
 
 const SERVICES_LIST = [
@@ -29,6 +30,10 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  // Only release the shared scroll lock if this modal is the one holding
+  // it — otherwise its mount-time run (closed by default) would clobber a
+  // lock some other holder (e.g. the Preloader) still needs.
+  const holdsLockRef = useRef(false);
 
   useEffect(() => {
     if (defaultService) {
@@ -39,16 +44,23 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
   useEffect(() => {
     const lenis = getLenis();
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      lockScroll();
+      holdsLockRef.current = true;
       lenis?.stop();
     } else {
-      document.body.style.overflow = '';
+      if (holdsLockRef.current) {
+        unlockScroll();
+        holdsLockRef.current = false;
+      }
       lenis?.start();
       setIsSuccess(false);
       setErrors({});
     }
     return () => {
-      document.body.style.overflow = '';
+      if (holdsLockRef.current) {
+        unlockScroll();
+        holdsLockRef.current = false;
+      }
       lenis?.start();
     };
   }, [isOpen]);

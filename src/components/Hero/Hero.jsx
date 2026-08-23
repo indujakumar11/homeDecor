@@ -1,13 +1,18 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowDown, Eye, Calendar } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import { gsap, getLenis } from '../../lib/smoothScroll';
+import { onPreloaderComplete } from '../../lib/preloaderSignal';
 import styles from './Hero.module.scss';
 
 const Hero = ({ onOpenConsultation }) => {
   const navigate = useNavigate();
   const sectionRef = useRef(null);
+  // Entrance timeline waits for the Preloader (see lib/preloaderSignal.js)
+  // so the reveal and Hero's own animation feel like one continuous moment
+  // instead of racing each other.
+  const [ready, setReady] = useState(false);
   const bgImageRef = useRef(null);
   const badgeRef = useRef(null);
   const subheaderRef = useRef(null);
@@ -27,7 +32,11 @@ const Hero = ({ onOpenConsultation }) => {
     }
   };
 
+  useEffect(() => onPreloaderComplete(() => setReady(true)), []);
+
   useGSAP(() => {
+    if (!ready) return;
+
     const mm = gsap.matchMedia();
 
     mm.add('(prefers-reduced-motion: no-preference)', () => {
@@ -57,7 +66,7 @@ const Hero = ({ onOpenConsultation }) => {
     });
 
     return () => mm.revert();
-  }, { scope: sectionRef });
+  }, { scope: sectionRef, dependencies: [ready] });
 
   return (
     <section id="home" ref={sectionRef} className={styles.heroSection}>

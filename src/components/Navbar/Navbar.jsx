@@ -4,6 +4,7 @@ import Logo from '../common/Logo';
 import { Menu, X, Phone, Calendar, ArrowRight } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import { gsap, getLenis } from '../../lib/smoothScroll';
+import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import styles from './Navbar.module.scss';
 
 const NAV_LINKS = [
@@ -20,6 +21,10 @@ const Navbar = ({ onOpenConsultation }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const headerRef = useRef(null);
   const drawerListRef = useRef(null);
+  // Tracks whether *this* effect is the one currently holding the shared
+  // scroll lock, so its mount-time run (drawer starts closed) never
+  // releases a lock some other holder (e.g. the Preloader) still needs.
+  const holdsLockRef = useRef(false);
 
   // Stagger-in mobile drawer links each time the drawer opens
   useGSAP(() => {
@@ -52,12 +57,21 @@ const Navbar = ({ onOpenConsultation }) => {
   useEffect(() => {
     const lenis = getLenis();
     if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
+      lockScroll();
+      holdsLockRef.current = true;
       lenis?.stop();
-    } else {
-      document.body.style.overflow = '';
+    } else if (holdsLockRef.current) {
+      unlockScroll();
+      holdsLockRef.current = false;
       lenis?.start();
     }
+
+    return () => {
+      if (holdsLockRef.current) {
+        unlockScroll();
+        holdsLockRef.current = false;
+      }
+    };
   }, [mobileMenuOpen]);
 
   return (
