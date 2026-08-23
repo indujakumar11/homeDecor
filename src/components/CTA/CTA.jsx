@@ -1,16 +1,45 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Calendar, Phone, ArrowRight, Sparkles } from 'lucide-react';
+import { useGSAP } from '@gsap/react';
+import { gsap } from '../../lib/smoothScroll';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 import styles from './CTA.module.scss';
 
 const CTA = ({ onOpenConsultation }) => {
+  const bgImgRef = useRef(null);
+  const sectionRef = useScrollReveal({ selector: `.${styles.ctaContent}` });
+
+  useGSAP(() => {
+    const mm = gsap.matchMedia();
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      gsap.fromTo(
+        bgImgRef.current,
+        { scale: 1 },
+        {
+          scale: 1.1,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: true,
+          },
+        }
+      );
+    });
+    return () => mm.revert();
+  }, { scope: sectionRef });
+
   return (
-    <section className={styles.ctaSection}>
+    <section ref={sectionRef} className={styles.ctaSection}>
       <div className={styles.ctaBg}>
-        <img 
-          src="assets/services/murals.jpg" 
-          alt="Luxury Architecture and Relief Murals" 
+        <img
+          ref={bgImgRef}
+          src="assets/services/murals.jpg"
+          alt="Luxury Architecture and Relief Murals"
           className={styles.ctaBgImage}
-          loading="lazy" 
+          loading="lazy"
+          decoding="async"
         />
         <div className={styles.ctaOverlay} />
         <div className="grid-bg-overlay" />
@@ -41,9 +70,9 @@ const CTA = ({ onOpenConsultation }) => {
             <a
               href="tel:+919790838319"
               className={`btn btn-outline-gold ${styles.callBtn}`}
+              aria-label="Call Black Shades at +91 97908 38319"
             >
               <Phone size={16} />
-              <span>CALL +91 97908 38319</span>
             </a>
           </div>
 

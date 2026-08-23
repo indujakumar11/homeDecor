@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Home, Briefcase, Store, Hotel, Factory, ArrowRight, ShieldCheck, Award } from 'lucide-react';
+import { useGSAP } from '@gsap/react';
+import { gsap } from '../../lib/smoothScroll';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 import styles from './About.module.scss';
 
 const SECTORS = [
@@ -14,19 +17,44 @@ const SECTORS = [
 
 const About = ({ onOpenConsultation }) => {
   const navigate = useNavigate();
+  const sectionRef = useRef(null);
+  const imageWrapperRef = useRef(null);
+  const contentRef = useScrollReveal({
+    selector: `.${styles.mainTitle}, .${styles.leadParagraph}, .${styles.bodyParagraph}, .${styles.sectorsWrapper}, .${styles.actionRow}`,
+    y: 24,
+  });
+
+  useGSAP(() => {
+    const mm = gsap.matchMedia();
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      gsap.fromTo(
+        imageWrapperRef.current,
+        { clipPath: 'inset(0 0 0 100%)' },
+        {
+          clipPath: 'inset(0 0 0 0%)',
+          duration: 1.1,
+          ease: 'power3.inOut',
+          scrollTrigger: { trigger: sectionRef.current, start: 'top 75%' },
+        }
+      );
+    });
+    return () => mm.revert();
+  }, { scope: sectionRef });
 
   return (
-    <section id="about" className={`section-padding ${styles.aboutSection}`}>
+    <section id="about" ref={sectionRef} className={`section-padding ${styles.aboutSection}`}>
       <div className="container">
         <div className={styles.aboutGrid}>
           {/* Left Column: Visual Image with Luxury Gold Framing */}
           <div className={styles.imageCol}>
             <div className={styles.imageFrameOuter}>
-              <div className={styles.imageWrapper}>
-                <img 
-                  src="assets/services/murals.jpg" 
-                  alt="Black Shades Master Craftsmen and Sculptural Artwork" 
+              <div ref={imageWrapperRef} className={styles.imageWrapper}>
+                <img
+                  src="assets/services/murals.jpg"
+                  alt="Black Shades Master Craftsmen and Sculptural Artwork"
                   className={styles.aboutImage}
+                  loading="lazy"
+                  decoding="async"
                 />
                 <div className={styles.imageOverlay} />
               </div>
@@ -51,9 +79,7 @@ const About = ({ onOpenConsultation }) => {
           </div>
 
           {/* Right Column: Narrative & Sectors */}
-          <div className={styles.contentCol}>
-            <div className="eyebrow">ABOUT BLACK SHADES</div>
-            
+          <div ref={contentRef} className={styles.contentCol}>
             <h2 className={styles.mainTitle}>
               We Don't Just Decorate Spaces. <span className="gold-text">We Create Experiences.</span>
             </h2>

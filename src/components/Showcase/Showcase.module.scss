@@ -30,7 +30,7 @@
   object-fit: cover;
   object-position: center;
   filter: brightness(0.45) contrast(1.1);
-  transform: scale(1.02);
+  will-change: transform;
 }
 
 .showcaseOverlay {

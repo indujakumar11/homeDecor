@@ -1,0 +1,39 @@
+// Admin portal design tokens. Deliberately namespaced (--admin-*) and
+// distinct from the public site's --color-* tokens: the public site is a
+// dark, gold-glow, animation-heavy marketing surface; the admin portal is a
+// data-entry/management tool that needs to stay calm and legible. Brand
+// identity (gold accent, dark surface, existing fonts) is kept in the
+// sidebar and interactive accents rather than the whole canvas.
+:root {
+  --admin-bg: #f5f4f1;
+  --admin-surface: #ffffff;
+  --admin-surface-alt: #faf9f6;
+  --admin-border: #e3e0d8;
+  --admin-text-main: #1c1b19;
+  --admin-text-muted: #6c6860;
+  --admin-text-dim: #9a958a;
+
+  --admin-sidebar-bg: #121212;
+  --admin-sidebar-border: rgba(181, 138, 60, 0.18);
+  --admin-sidebar-text: #cdc7ba;
+  --admin-sidebar-text-active: #ffffff;
+  --admin-sidebar-active-bg: rgba(181, 138, 60, 0.14);
+
+  --admin-gold: #b58a3c;
+  --admin-gold-light: #d4af63;
+  --admin-gold-dark: #8c6827;
+
+  --admin-danger: #c0392b;
+  --admin-danger-bg: #fdecea;
+  --admin-danger-border: #f3c6c1;
+  --admin-success: #1e7e34;
+  --admin-success-bg: #eaf6ec;
+  --admin-success-border: #bfe2c6;
+
+  --admin-radius: 4px;
+  --admin-shadow-sm: 0 1px 2px rgba(20, 18, 14, 0.06);
+  --admin-shadow-md: 0 4px 16px rgba(20, 18, 14, 0.08);
+  --admin-transition: 0.15s ease;
+
+  --admin-sidebar-width: 258px;
+}

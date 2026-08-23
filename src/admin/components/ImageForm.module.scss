@@ -1,0 +1,208 @@
+@use '../styles/admin-variables' as *;
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 560px;
+}
+
+.formAlert {
+  margin-bottom: -0.5rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+}
+
+.required {
+  color: var(--admin-danger);
+}
+
+.input, .select, .textarea {
+  width: 100%;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  padding: 0.65rem 0.8rem;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--admin-text-main);
+  outline: none;
+  transition: border-color var(--admin-transition);
+
+  &:focus {
+    border-color: var(--admin-gold);
+  }
+
+  &::placeholder {
+    color: var(--admin-text-dim);
+  }
+}
+
+.select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236c6860' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.inputError {
+  border-color: var(--admin-danger);
+}
+
+.errorText {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--admin-danger);
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 2rem 1rem;
+  border: 1.5px dashed var(--admin-border);
+  border-radius: var(--admin-radius);
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  transition: border-color var(--admin-transition), background var(--admin-transition);
+  text-align: center;
+  font-size: 0.85rem;
+
+  &:hover {
+    border-color: var(--admin-gold);
+    background: var(--admin-surface-alt);
+  }
+}
+
+.dropzoneHint {
+  font-size: 0.76rem;
+  color: var(--admin-text-dim);
+}
+
+.previewWrap {
+  position: relative;
+  width: 220px;
+  max-width: 100%;
+  border-radius: var(--admin-radius);
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+}
+
+.previewImg {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+
+.removeImgBtn {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(18, 18, 18, 0.75);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--admin-danger);
+  }
+}
+
+.changeImgBtn {
+  align-self: flex-start;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--admin-gold-dark);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.cancelBtn, .submitBtn {
+  padding: 0.7rem 1.4rem;
+  border-radius: var(--admin-radius);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--admin-transition), opacity var(--admin-transition);
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.cancelBtn {
+  background: var(--admin-surface);
+  border-color: var(--admin-border);
+  color: var(--admin-text-main);
+
+  &:hover:not(:disabled) {
+    background: var(--admin-surface-alt);
+  }
+}
+
+.submitBtn {
+  background: var(--admin-gold);
+  color: #ffffff;
+
+  &:hover:not(:disabled) {
+    background: var(--admin-gold-dark);
+  }
+}
+
+@media (max-width: 480px) {
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancelBtn, .submitBtn {
+    width: 100%;
+  }
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Lightbulb, Gem, Palette, Clock, Maximize, CheckCircle, Sparkles, MessageSquare } from 'lucide-react';
 import { whyChooseData } from '../../data/whyChooseData';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 import styles from './WhyChooseUs.module.scss';
 
 const iconMap = {
@@ -13,8 +14,10 @@ const iconMap = {
 };
 
 const WhyChooseUs = ({ onOpenConsultation }) => {
+  const sectionRef = useScrollReveal({ selector: `.${styles.featureCard}, .${styles.impactBanner}`, y: 30 });
+
   return (
-    <section id="why-choose" className={`section-padding ${styles.whySection}`}>
+    <section id="why-choose" ref={sectionRef} className={`section-padding ${styles.whySection}`}>
       <div className="container">
         {/* Section Header */}
         <div className="section-header">

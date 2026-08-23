@@ -1,5 +1,6 @@
 @use './variables' as *;
 @use './mixins' as *;
+@use './animations';
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -289,17 +290,6 @@ button {
 }
 
 /* ============================================
-   SUBPAGE LAYOUT — offset for sticky navbar
-   ============================================ */
-.subpage-layout {
-  padding-top: var(--header-height);
-
-  @media (max-width: 768px) {
-    padding-top: var(--header-height-mobile);
-  }
-}
-
-/* ============================================
    GLOBAL MOBILE RESPONSIVE IMPROVEMENTS
    ============================================ */
 
@@ -349,10 +339,20 @@ button {
   }
 }
 
+/* Subpage layout — offsets content below the fixed navbar on pages that
+   have no PageHeader (or other navbar-clearing section) at the top. */
+.subpage-layout {
+  padding-top: var(--header-height);
+
+  @media (max-width: 768px) {
+    padding-top: var(--header-height-mobile);
+  }
+}
+
 /* Category Carousel Top Wrapper */
 .carousel-top-wrapper {
   padding-top: var(--header-height);
-  background: #ffffff;
+  background: var(--color-charcoal);
   border-bottom: 1px solid rgba(181, 138, 60, 0.2);
 
   @media (max-width: 768px) {

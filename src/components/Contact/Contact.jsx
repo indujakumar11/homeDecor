@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, Clock, Shield } from 'lucide-react';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 import styles from './Contact.module.scss';
 
 const PROJECT_TYPES = [
@@ -27,6 +28,7 @@ const Contact = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const gridRef = useScrollReveal({ selector: `.${styles.contactInfoCol}, .${styles.contactFormCol}`, y: 24, stagger: 0.15 });
 
   const validateForm = () => {
     const newErrors = {};
@@ -91,17 +93,7 @@ const Contact = () => {
   return (
     <section id="contact" className={`section-padding ${styles.contactSection}`}>
       <div className="container">
-        {/* Section Header */}
-        <div className="section-header">
-          <div className="eyebrow">GET IN TOUCH</div>
-          <h2 className="section-title">LET'S TALK ABOUT YOUR SPACE</h2>
-          <div className="gold-divider" />
-          <p className="section-subtitle">
-            Whether envisioning a private residential haven or a landmark corporate facility, our team is ready to assist.
-          </p>
-        </div>
-
-        <div className={styles.contactGrid}>
+        <div ref={gridRef} className={styles.contactGrid}>
           {/* Left Column: Direct Contact Details & Info */}
           <div className={styles.contactInfoCol}>
             <div className={styles.infoCard}>

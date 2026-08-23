@@ -1,31 +1,75 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowDown, Sparkles, Compass, Eye, Calendar } from 'lucide-react';
+import { ArrowDown, Eye, Calendar } from 'lucide-react';
+import { useGSAP } from '@gsap/react';
+import { gsap, getLenis } from '../../lib/smoothScroll';
 import styles from './Hero.module.scss';
 
 const Hero = ({ onOpenConsultation }) => {
   const navigate = useNavigate();
+  const sectionRef = useRef(null);
+  const bgImageRef = useRef(null);
+  const badgeRef = useRef(null);
+  const subheaderRef = useRef(null);
+  const headlineRef = useRef(null);
+  const subtextRef = useRef(null);
+  const ctaRef = useRef(null);
+  const pillsRef = useRef(null);
+
   const handleScrollToSection = (id) => {
     const el = document.getElementById(id);
-    if (el) {
-      const headerOffset = 80;
-      const elementPosition = el.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
+    if (!el) return;
+    const lenis = getLenis();
+    if (lenis) {
+      lenis.scrollTo(el, { offset: -80 });
+    } else {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
+  useGSAP(() => {
+    const mm = gsap.matchMedia();
+
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      gsap.set(bgImageRef.current, { scale: 1.15 });
+
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+      tl.to(bgImageRef.current, { scale: 1.04, duration: 1.6, ease: 'power2.out' }, 0)
+        .from(badgeRef.current, { opacity: 0, y: 18, duration: 0.7 }, 0.15)
+        .from(subheaderRef.current, { opacity: 0, y: 18, duration: 0.7 }, 0.3)
+        .from(headlineRef.current, { opacity: 0, y: 28, duration: 0.9 }, 0.42)
+        .from(subtextRef.current, { opacity: 0, y: 18, duration: 0.7 }, 0.62)
+        .from(ctaRef.current.children, { opacity: 0, y: 16, duration: 0.6, stagger: 0.1 }, 0.78)
+        .from(pillsRef.current, { opacity: 0, y: 14, duration: 0.6 }, 0.95);
+
+      // Gentle continued scale as the user scrolls past the hero
+      gsap.to(bgImageRef.current, {
+        scale: 1.16,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true,
+        },
+      });
+    });
+
+    return () => mm.revert();
+  }, { scope: sectionRef });
+
   return (
-    <section id="home" className={styles.heroSection}>
+    <section id="home" ref={sectionRef} className={styles.heroSection}>
       {/* Background Image with Dark Vignette & Parallax feel */}
       <div className={styles.heroBgWrapper}>
-        <img 
-          src="assets/hero/hero-bg.jpg" 
-          alt="Black Shades Luxury Interior & Architectural Decor" 
-          className={styles.heroBgImage} 
+        <img
+          ref={bgImageRef}
+          src="assets/hero/hero-bg.jpg"
+          alt="Black Shades Luxury Interior & Architectural Decor"
+          className={styles.heroBgImage}
+          decoding="async"
+          fetchPriority="high"
         />
         <div className={styles.heroOverlayGradient} />
         <div className={styles.heroVignette} />
@@ -41,31 +85,31 @@ const Hero = ({ onOpenConsultation }) => {
       <div className={`container ${styles.heroContainer}`}>
         <div className={styles.heroContent}>
           {/* Brand Monogram Tag */}
-          <div className={styles.brandBadge}>
+          <div ref={badgeRef} className={styles.brandBadge}>
             <span className={styles.badgeLine}></span>
             <span className={styles.badgeText}>WE DESIGN • WE SCULPT • WE CREATE</span>
             <span className={styles.badgeLine}></span>
           </div>
 
           {/* Subtitle / Company Name */}
-          <div className={styles.companySubheader}>
+          <div ref={subheaderRef} className={styles.companySubheader}>
             <span className={styles.blackShades}>BLACK SHADES</span>
             <span className={styles.decorDot}>•</span>
             <span className={styles.homeDecors}>HOME DECORS</span>
           </div>
 
           {/* Main Headline */}
-          <h1 className={styles.headline}>
+          <h1 ref={headlineRef} className={styles.headline}>
             Spaces That <span className="gold-text">Inspire.</span>
           </h1>
 
           {/* Supporting Text */}
-          <p className={styles.subtext}>
+          <p ref={subtextRef} className={styles.subtext}>
             We design, sculpt and create distinctive spaces through premium décor, custom craftsmanship and complete interior solutions across Chennai & beyond.
           </p>
 
           {/* CTA Group */}
-          <div className={styles.ctaGroup}>
+          <div ref={ctaRef} className={styles.ctaGroup}>
             <button
               type="button"
               className={`btn btn-primary-gold ${styles.primaryCta}`}
@@ -86,7 +130,7 @@ const Hero = ({ onOpenConsultation }) => {
           </div>
 
           {/* Value Micro Highlights */}
-          <div className={styles.heroMicroPills}>
+          <div ref={pillsRef} className={styles.heroMicroPills}>
             <span className={styles.pillItem}>
               <span className={styles.goldDot}></span> Custom Murals & Relief
             </span>
@@ -103,9 +147,9 @@ const Hero = ({ onOpenConsultation }) => {
       </div>
 
       {/* Subtle Animated Scroll Indicator */}
-      <button 
+      <button
         type="button"
-        className={styles.scrollIndicator} 
+        className={styles.scrollIndicator}
         onClick={() => handleScrollToSection('trust-strip')}
         aria-label="Scroll down to explore"
       >

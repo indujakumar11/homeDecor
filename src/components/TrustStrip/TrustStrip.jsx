@@ -1,6 +1,7 @@
 import React from 'react';
 import { Compass, ShieldCheck, Sparkles, Layers } from 'lucide-react';
 import { trustStripData } from '../../data/trustStripData';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 import styles from './TrustStrip.module.scss';
 
 const iconMap = {
@@ -11,8 +12,10 @@ const iconMap = {
 };
 
 const TrustStrip = () => {
+  const sectionRef = useScrollReveal({ selector: `.${styles.trustItem}, .${styles.brandRibbon}`, y: 24 });
+
   return (
-    <section id="trust-strip" className={styles.trustSection}>
+    <section id="trust-strip" ref={sectionRef} className={styles.trustSection}>
       <div className="container">
         {/* Four Core Pillars */}
         <div className={styles.trustGrid}>

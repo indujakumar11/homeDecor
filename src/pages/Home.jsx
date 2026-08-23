@@ -2,6 +2,7 @@ import React from 'react';
 import Hero from '../components/Hero/Hero';
 import TrustStrip from '../components/TrustStrip/TrustStrip';
 import CategoryCarousel from '../components/common/CategoryCarousel';
+import Marquee from '../components/common/Marquee/Marquee';
 import Showcase from '../components/Showcase/Showcase';
 import WhyChooseUs from '../components/WhyChooseUs/WhyChooseUs';
 import CTA from '../components/CTA/CTA';
@@ -15,6 +16,7 @@ const Home = ({ onOpenConsultation }) => {
       </div>
 
       <Hero onOpenConsultation={onOpenConsultation} />
+      <Marquee />
       <TrustStrip />
       <Showcase onOpenConsultation={onOpenConsultation} />
       <WhyChooseUs onOpenConsultation={onOpenConsultation} />

@@ -1,0 +1,21 @@
+@use './variables' as *;
+
+// Marquee — pure CSS loop, no JS animation frame
+@keyframes marquee-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+// Baseline hidden state for elements GSAP will reveal on scroll.
+// Kept as a class (not inline styles) so no-JS / reduced-motion users
+// never see a flash of hidden content — GSAP sets this via matchMedia,
+// this class is only ever applied by JS, never by default markup.
+.gsap-reveal-init {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gsap-reveal-init {
+    opacity: 1;
+  }
+}

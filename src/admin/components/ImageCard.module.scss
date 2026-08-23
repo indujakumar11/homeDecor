@@ -1,0 +1,111 @@
+@use '../styles/admin-variables' as *;
+
+// ---- Grid card (Gallery Management) ----
+// Every card is the same size regardless of the source image's dimensions
+// or title length: the thumbnail is a fixed aspect-ratio crop (object-fit:
+// cover — the image may not be fully visible, and that's intentional) and
+// the title area reserves space for two lines, so cards never stagger.
+.card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: var(--admin-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover, &:focus-within {
+    transform: translateY(-6px);
+    border-color: var(--admin-gold-light);
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4), 0 0 22px rgba(181, 138, 60, 0.22);
+
+    .thumb {
+      transform: scale(1.06);
+    }
+  }
+}
+
+.thumbWrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--admin-surface-alt);
+}
+
+.thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.categoryBadge {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  background: rgba(18, 18, 18, 0.82);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.25rem 0.55rem;
+  border-radius: 3px;
+}
+
+.cardBody {
+  padding: 1rem 1.1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.cardTitle {
+  font-family: var(--font-sans);
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+  line-height: 1.35;
+  // Reserves 2 lines' worth of height even for a 1-line title, so every
+  // card body ends up the same height no matter how long the title is.
+  min-height: 2.7em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardActions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.editBtn, .deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--admin-radius);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-text-main);
+  cursor: pointer;
+  transition: background var(--admin-transition), color var(--admin-transition), border-color var(--admin-transition);
+
+  &:hover {
+    background: var(--admin-surface-alt);
+  }
+}
+
+.deleteBtn:hover {
+  color: var(--admin-danger);
+  border-color: var(--admin-danger-border);
+  background: var(--admin-danger-bg);
+}

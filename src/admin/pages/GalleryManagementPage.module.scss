@@ -1,0 +1,166 @@
+@use '../styles/admin-variables' as *;
+
+// Dark-theme override: redefine the admin tokens every element below (and
+// ImageCard/ConfirmDialog, since they render inside this wrapper) reads
+// from, so the whole page — including the delete confirmation dialog —
+// renders dark without touching those shared components.
+.fullscreenWrap {
+  --admin-surface: #161514;
+  --admin-surface-alt: #1e1c1a;
+  --admin-border: rgba(255, 255, 255, 0.12);
+  --admin-text-main: #f2ede3;
+  --admin-text-muted: #a39e93;
+  --admin-text-dim: #706b60;
+  --admin-danger-bg: rgba(192, 57, 43, 0.16);
+  --admin-danger-border: rgba(192, 57, 43, 0.4);
+  --admin-success-bg: rgba(30, 126, 52, 0.16);
+  --admin-success-border: rgba(30, 126, 52, 0.4);
+
+  flex: 1;
+  min-height: 100vh;
+  width: 100%;
+  background: #0a0a0a;
+  background-image: radial-gradient(circle at 50% 0%, rgba(181, 138, 60, 0.06) 0%, transparent 55%);
+  padding: 1.75rem;
+}
+
+.toast {
+  margin-bottom: 1.25rem;
+  max-width: 480px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.searchBox {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+
+  input {
+    width: 100%;
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    padding: 0.6rem 0.9rem 0.6rem 2.2rem;
+    font-size: 0.88rem;
+    font-family: var(--font-sans);
+    color: var(--admin-text-main);
+    outline: none;
+    transition: border-color var(--admin-transition);
+
+    &:focus {
+      border-color: var(--admin-gold);
+    }
+
+    &::placeholder {
+      color: var(--admin-text-dim);
+    }
+  }
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--admin-text-dim);
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filterTab {
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--admin-radius);
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--admin-transition), color var(--admin-transition), border-color var(--admin-transition);
+
+  &:hover {
+    background: var(--admin-surface-alt);
+  }
+}
+
+.activeTab {
+  background: var(--admin-gold);
+  border-color: var(--admin-gold);
+  color: #ffffff;
+
+  &:hover {
+    background: var(--admin-gold-dark);
+  }
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--admin-gold);
+  color: #ffffff;
+  border-radius: var(--admin-radius);
+  padding: 0.6rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background var(--admin-transition);
+
+  &:hover {
+    background: var(--admin-gold-dark);
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 4rem 1rem;
+  color: var(--admin-text-muted);
+  background: var(--admin-surface);
+  border: 1px dashed var(--admin-border);
+  border-radius: 8px;
+}
+
+.emptyCta {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--admin-gold-dark);
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .fullscreenWrap {
+    padding: 1.25rem;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .addBtn {
+    justify-content: center;
+  }
+}

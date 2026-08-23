@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, CheckCircle2, Phone, Mail, Clock, AlertCircle } from 'lucide-react';
+import { getLenis } from '../../lib/smoothScroll';
 import styles from './ConsultationModal.module.scss';
 
 const SERVICES_LIST = [
@@ -36,15 +37,19 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
   }, [defaultService]);
 
   useEffect(() => {
+    const lenis = getLenis();
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      lenis?.stop();
     } else {
       document.body.style.overflow = '';
+      lenis?.start();
       setIsSuccess(false);
       setErrors({});
     }
     return () => {
       document.body.style.overflow = '';
+      lenis?.start();
     };
   }, [isOpen]);
 
@@ -244,10 +249,10 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
                 <span>{isSubmitting ? 'CONFIRMING...' : 'CONFIRM CONSULTATION'}</span>
               </button>
 
-              <div className={styles.footerNote}>
+              <a href="tel:+919790838319" className={styles.footerNote} aria-label="Or call direct: +91 97908 38319">
                 <Phone size={13} className={styles.noteIcon} />
-                <span>Or call direct: <strong>+91 97908 38319</strong></span>
-              </div>
+                <span>Or call direct</span>
+              </a>
             </div>
           </form>
         )}

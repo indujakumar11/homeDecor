@@ -30,9 +30,27 @@
   padding: 2.5rem;
   max-height: 90vh;
   overflow-y: auto;
+  animation: modalRevealIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 
   @include respond-to('md') {
     padding: 1.75rem 1.25rem;
+  }
+}
+
+@keyframes modalRevealIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modalContent {
+    animation: none;
   }
 }
 
@@ -171,13 +189,14 @@
   gap: 0.4rem;
   font-size: 0.78rem;
   color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+
+  &:hover {
+    color: var(--color-gold-light);
+  }
 
   .noteIcon {
     color: var(--color-gold);
-  }
-
-  strong {
-    color: var(--color-gold-light);
   }
 }
 

@@ -1,0 +1,60 @@
+@use '../styles/admin-variables' as *;
+
+// Dark-theme override: redefine the admin tokens ImageForm/InlineAlert read
+// from (--admin-surface, --admin-border, etc.) so those shared components
+// automatically render in a dark palette here without any changes to them.
+.fullscreenWrap {
+  --admin-surface: #161514;
+  --admin-surface-alt: #1e1c1a;
+  --admin-border: rgba(255, 255, 255, 0.12);
+  --admin-text-main: #f2ede3;
+  --admin-text-muted: #a39e93;
+  --admin-text-dim: #706b60;
+  --admin-danger-bg: rgba(192, 57, 43, 0.16);
+  --admin-danger-border: rgba(192, 57, 43, 0.4);
+  --admin-success-bg: rgba(30, 126, 52, 0.16);
+  --admin-success-border: rgba(30, 126, 52, 0.4);
+
+  flex: 1;
+  min-height: 100vh;
+  width: 100%;
+  background: #0a0a0a;
+  background-image: radial-gradient(circle at 50% 0%, rgba(181, 138, 60, 0.06) 0%, transparent 55%);
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+}
+
+.formPanel {
+  width: 100%;
+  max-width: 640px;
+  height: fit-content;
+}
+
+.panelHeading {
+  margin-bottom: 1.75rem;
+}
+
+.panelTitle {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+  margin-bottom: 0.4rem;
+}
+
+.panelSubtitle {
+  font-size: 0.88rem;
+  color: var(--admin-text-muted);
+  line-height: 1.55;
+}
+
+.toast {
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 600px) {
+  .fullscreenWrap {
+    padding: 2rem 1rem;
+  }
+}

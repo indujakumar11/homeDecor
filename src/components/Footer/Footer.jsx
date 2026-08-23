@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '../common/Logo';
 import { Phone, Mail, MapPin, ArrowUp, QrCode } from 'lucide-react';
+import { getLenis } from '../../lib/smoothScroll';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 import styles from './Footer.module.scss';
 
 const NAV_LINKS = [
@@ -26,15 +28,19 @@ const SERVICE_LINKS = [
 ];
 
 const Footer = ({ onOpenConsultation }) => {
+  const footerRef = useScrollReveal({ selector: `.${styles.brandCol}, .${styles.navCol}, .${styles.servicesCol}, .${styles.contactCol}`, y: 20, start: 'top 95%' });
+
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    const lenis = getLenis();
+    if (lenis) {
+      lenis.scrollTo(0);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
-    <footer className={styles.footer}>
+    <footer ref={footerRef} className={styles.footer}>
       {/* Top Gold Border Accent */}
       <div className={styles.topGoldBar} />
 
@@ -135,9 +141,12 @@ const Footer = ({ onOpenConsultation }) => {
             <h4 className={styles.colTitle}>CONTACT STUDIO</h4>
             
             <div className={styles.footerContactList}>
-              <a href="tel:+919790838319" className={styles.footerContactItem}>
+              <a
+                href="tel:+919790838319"
+                className={styles.footerContactItem}
+                aria-label="Call Black Shades at +91 97908 38319"
+              >
                 <Phone size={16} className={styles.fIcon} />
-                <span>+91 97908 38319</span>
               </a>
 
               <a href="mailto:blackshadeshomedecors@gmail.com" className={styles.footerContactItem}>

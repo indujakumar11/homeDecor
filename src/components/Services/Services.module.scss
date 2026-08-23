@@ -55,6 +55,20 @@
       color: var(--color-gold-light);
     }
   }
+
+  &.featuredCard {
+    @media (min-width: 1025px) {
+      grid-column: span 2;
+
+      .cardImageWrapper {
+        aspect-ratio: 21 / 9;
+      }
+
+      .cardTitle {
+        font-size: 1.5rem;
+      }
+    }
+  }
 }
 
 .cardImageWrapper {
@@ -184,6 +198,24 @@
   overflow: hidden;
   max-height: 90vh;
   overflow-y: auto;
+  animation: modalRevealIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalRevealIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modalContainer {
+    animation: none;
+  }
 }
 
 .modalCloseBtn {

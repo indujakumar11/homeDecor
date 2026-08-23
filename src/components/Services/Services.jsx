@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { servicesData } from '../../data/servicesData';
 import { ArrowRight, Sparkles, Check, X, Calendar } from 'lucide-react';
-import CategoryCarousel from '../common/CategoryCarousel';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 import styles from './Services.module.scss';
 
 const Services = ({ onOpenConsultation }) => {
@@ -11,6 +11,7 @@ const Services = ({ onOpenConsultation }) => {
   const navigate = useNavigate();
   // Track whether the modal was opened from the Home page carousel
   const openedFromHomeRef = useRef(false);
+  const gridRef = useScrollReveal({ selector: `.${styles.serviceCard}`, y: 32 });
 
   useEffect(() => {
     if (location.state && location.state.selectedServiceId) {
@@ -40,33 +41,12 @@ const Services = ({ onOpenConsultation }) => {
   return (
     <section id="services" className={`section-padding ${styles.servicesSection}`}>
       <div className="container">
-        {/* Section Header */}
-        <div className="section-header">
-          <div className="eyebrow">SERVICES & EXPERTISE</div>
-          <h2 className="section-title">WHAT WE DO</h2>
-          <div className="gold-divider" />
-          <p className="section-subtitle">
-            Creative craftsmanship. Architectural thinking. Complete solutions.
-          </p>
-        </div>
-
-        {/* Category Carousel Navigation Bar */}
-        <div style={{ marginBottom: '2.5rem' }}>
-          <CategoryCarousel
-            activeCategoryId={selectedService?.id || null}
-            onSelectCategory={(id) => {
-              const matched = servicesData.find((s) => s.id === id);
-              if (matched) setSelectedService(matched);
-            }}
-          />
-        </div>
-
         {/* 9 Architectural Service Cards Grid */}
-        <div className={styles.servicesGrid}>
-          {servicesData.map((service) => (
-            <article 
-              key={service.id} 
-              className={styles.serviceCard}
+        <div ref={gridRef} className={styles.servicesGrid}>
+          {servicesData.map((service, index) => (
+            <article
+              key={service.id}
+              className={`${styles.serviceCard} ${index === 0 ? styles.featuredCard : ''}`}
               onClick={() => handleOpenDetail(service)}
               tabIndex={0}
               role="button"
@@ -80,11 +60,12 @@ const Services = ({ onOpenConsultation }) => {
             >
               {/* Card Image Container */}
               <div className={styles.cardImageWrapper}>
-                <img 
-                  src={service.image} 
-                  alt={service.title} 
+                <img
+                  src={service.image}
+                  alt={service.title}
                   className={styles.cardImage}
                   loading="lazy"
+                  decoding="async"
                 />
                 <div className={styles.imageOverlayGradient} />
                 
@@ -133,10 +114,11 @@ const Services = ({ onOpenConsultation }) => {
 
             <div className={styles.modalGrid}>
               <div className={styles.modalImageCol}>
-                <img 
-                  src={selectedService.image} 
-                  alt={selectedService.title} 
+                <img
+                  src={selectedService.image}
+                  alt={selectedService.title}
                   className={styles.modalImg}
+                  decoding="async"
                 />
                 <div className={styles.modalImgOverlay} />
                 <span className={styles.modalNumber}>{selectedService.number}</span>

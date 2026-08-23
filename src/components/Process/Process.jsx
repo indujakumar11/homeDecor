@@ -1,26 +1,18 @@
 import React, { useState } from 'react';
 import { processSteps } from '../../data/processData';
 import { CheckCircle2, ArrowRight } from 'lucide-react';
+import { useScrollReveal } from '../../hooks/useScrollReveal';
 import styles from './Process.module.scss';
 
 const Process = ({ onOpenConsultation }) => {
   const [activeStep, setActiveStep] = useState(0);
+  const timelineRef = useScrollReveal({ selector: `.${styles.stepCard}`, y: 26, stagger: 0.1 });
 
   return (
     <section id="process" className={`section-padding ${styles.processSection}`}>
       <div className="container">
-        {/* Section Header */}
-        <div className="section-header">
-          <div className="eyebrow">OUR METHODOLOGY</div>
-          <h2 className="section-title">FROM CONCEPT TO CREATION</h2>
-          <div className="gold-divider" />
-          <p className="section-subtitle">
-            A disciplined six-stage architectural workflow ensuring precision at every step.
-          </p>
-        </div>
-
         {/* Interactive Desktop / Mobile Timeline */}
-        <div className={styles.timelineWrapper}>
+        <div ref={timelineRef} className={styles.timelineWrapper}>
           {/* Glowing Gold Path Line */}
           <div className={styles.connectorLine} aria-hidden="true" />
 

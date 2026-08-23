@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import Logo from '../common/Logo';
 import { Menu, X, Phone, Calendar, ArrowRight } from 'lucide-react';
+import { useGSAP } from '@gsap/react';
+import { gsap, getLenis } from '../../lib/smoothScroll';
 import styles from './Navbar.module.scss';
 
 const NAV_LINKS = [
@@ -16,6 +18,22 @@ const NAV_LINKS = [
 const Navbar = ({ onOpenConsultation }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const headerRef = useRef(null);
+  const drawerListRef = useRef(null);
+
+  // Stagger-in mobile drawer links each time the drawer opens
+  useGSAP(() => {
+    if (!mobileMenuOpen || !drawerListRef.current) return;
+    const mm = gsap.matchMedia();
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      gsap.fromTo(
+        drawerListRef.current.children,
+        { opacity: 0, x: 24 },
+        { opacity: 1, x: 0, duration: 0.45, stagger: 0.06, delay: 0.15, ease: 'power2.out' }
+      );
+    });
+    return () => mm.revert();
+  }, { dependencies: [mobileMenuOpen], scope: drawerListRef });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,16 +50,19 @@ const Navbar = ({ onOpenConsultation }) => {
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
+    const lenis = getLenis();
     if (mobileMenuOpen) {
       document.body.style.overflow = 'hidden';
+      lenis?.stop();
     } else {
       document.body.style.overflow = '';
+      lenis?.start();
     }
   }, [mobileMenuOpen]);
 
   return (
     <>
-      <header className={`${styles.header} ${isScrolled ? styles.scrolled : ''}`}>
+      <header ref={headerRef} className={`${styles.header} ${isScrolled ? styles.scrolled : ''}`}>
         <div className={`container ${styles.navContainer}`}>
           {/* Brand Monogram & Title */}
           <Logo size="small" />
@@ -72,7 +93,6 @@ const Navbar = ({ onOpenConsultation }) => {
               title="Call Us Directly"
             >
               <Phone size={15} className={styles.phoneIcon} />
-              <span className={styles.phoneNumber}>+91 97908 38319</span>
             </a>
 
             <button
@@ -117,7 +137,7 @@ const Navbar = ({ onOpenConsultation }) => {
 
         <div className={styles.drawerContent}>
           <p className={styles.drawerTagline}>WE DESIGN • WE SCULPT • WE CREATE</p>
-          <ul className={styles.mobileNavList}>
+          <ul ref={drawerListRef} className={styles.mobileNavList}>
             {NAV_LINKS.map((link) => (
               <li key={link.name}>
                 <NavLink
@@ -146,9 +166,12 @@ const Navbar = ({ onOpenConsultation }) => {
               <span>BOOK A CONSULTATION</span>
             </button>
 
-            <a href="tel:+919790838319" className={styles.drawerPhone}>
+            <a
+              href="tel:+919790838319"
+              className={styles.drawerPhone}
+              aria-label="Call Black Shades at +91 97908 38319"
+            >
               <Phone size={16} />
-              <span>+91 97908 38319</span>
             </a>
           </div>
         </div>

@@ -30,6 +30,15 @@
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
 
+  // Editorial Type Scale
+  --text-hero: clamp(2.75rem, 6.8vw, 6.25rem);
+  --text-display: clamp(2.1rem, 4.6vw, 4rem);
+  --text-h1: clamp(1.9rem, 3.8vw, 3rem);
+  --text-h2: clamp(1.6rem, 2.8vw, 2.35rem);
+  --text-h3: clamp(1.3rem, 2vw, 1.65rem);
+  --text-body-lg: clamp(1.05rem, 1.4vw, 1.25rem);
+  --text-label: 0.78rem;
+
   // Layout & Spacing
   --container-max-width: 1360px;
   --header-height: 84px;

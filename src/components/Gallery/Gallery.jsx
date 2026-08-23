@@ -1,15 +1,49 @@
-import React, { useState } from 'react';
-import { projectCategories, projectsData } from '../../data/projectsData';
+import React, { useState, useRef, useMemo } from 'react';
 import { ArrowRight, MapPin, Eye, X, Calendar } from 'lucide-react';
+import { useGSAP } from '@gsap/react';
+import { gsap } from '../../lib/smoothScroll';
+import { getImages } from '../../services/galleryService';
+import { categories, getCategoryName } from '../../data/categories';
 import styles from './Gallery.module.scss';
+
+const CATEGORY_TABS = ['All', ...categories.map((c) => c.name)];
 
 const Gallery = ({ onOpenConsultation }) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeProject, setActiveProject] = useState(null);
+  const gridRef = useRef(null);
+
+  // Sourced from the shared gallery data layer (services/galleryService.js)
+  // so admin-managed changes appear here without any code changes.
+  const [images] = useState(() => getImages());
+  const projectsData = useMemo(() => images.map((img) => ({
+    id: img.id,
+    title: img.title,
+    category: getCategoryName(img.categoryId),
+    location: img.location,
+    image: img.imageUrl,
+    description: img.description,
+    scope: img.scope,
+    year: img.year,
+  })), [images]);
 
   const filteredProjects = activeCategory === 'All'
     ? projectsData
     : projectsData.filter((p) => p.category === activeCategory);
+
+  // Reveal on first mount, and re-run as a filter transition whenever the category changes
+  useGSAP(() => {
+    if (!gridRef.current) return;
+    const mm = gsap.matchMedia();
+    mm.add('(prefers-reduced-motion: no-preference)', () => {
+      gsap.fromTo(
+        gridRef.current.children,
+        { opacity: 0, y: 24 },
+        { opacity: 1, y: 0, duration: 0.55, stagger: 0.06, ease: 'power2.out' }
+      );
+    });
+    return () => mm.revert();
+  }, { dependencies: [activeCategory], scope: gridRef });
 
   const handleOpenProject = (proj) => {
     setActiveProject(proj);
@@ -22,19 +56,9 @@ const Gallery = ({ onOpenConsultation }) => {
   return (
     <section id="projects" className={`section-padding ${styles.gallerySection}`}>
       <div className="container">
-        {/* Section Header */}
-        <div className="section-header">
-          <div className="eyebrow">PORTFOLIO SHOWCASE</div>
-          <h2 className="section-title">SELECTED WORK</h2>
-          <div className="gold-divider" />
-          <p className="section-subtitle">
-            Crafted spaces. Distinctive details. Lasting impressions.
-          </p>
-        </div>
-
         {/* Category Filter Tabs */}
         <div className={styles.filterTabsWrapper} role="tablist">
-          {projectCategories.map((cat) => (
+          {CATEGORY_TABS.map((cat) => (
             <button
               key={cat}
               type="button"
@@ -50,7 +74,7 @@ const Gallery = ({ onOpenConsultation }) => {
         </div>
 
         {/* Asymmetric Gallery Grid */}
-        <div className={styles.galleryGrid}>
+        <div ref={gridRef} className={styles.galleryGrid}>
           {filteredProjects.map((project, index) => {
             const isFeatured = index === 0 || index === 3;
             return (
@@ -68,11 +92,12 @@ const Gallery = ({ onOpenConsultation }) => {
                 }}
               >
                 <div className={styles.imageContainer}>
-                  <img 
-                    src={project.image} 
-                    alt={project.title} 
+                  <img
+                    src={project.image}
+                    alt={project.title}
                     className={styles.projectImage}
-                    loading="lazy" 
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className={styles.overlayGradient} />
                   
@@ -82,10 +107,12 @@ const Gallery = ({ onOpenConsultation }) => {
 
                 {/* Information Card Overlay */}
                 <div className={styles.projectInfo}>
-                  <div className={styles.locationTag}>
-                    <MapPin size={12} className={styles.pinIcon} />
-                    <span>{project.location}</span>
-                  </div>
+                  {project.location && (
+                    <div className={styles.locationTag}>
+                      <MapPin size={12} className={styles.pinIcon} />
+                      <span>{project.location}</span>
+                    </div>
+                  )}
 
                   <h3 className={styles.projectTitle}>{project.title}</h3>
                   <p className={styles.projectDesc}>{project.description}</p>
@@ -113,25 +140,31 @@ const Gallery = ({ onOpenConsultation }) => {
             </button>
 
             <div className={styles.modalImageWrapper}>
-              <img src={activeProject.image} alt={activeProject.title} className={styles.modalImg} />
+              <img src={activeProject.image} alt={activeProject.title} className={styles.modalImg} decoding="async" />
             </div>
 
             <div className={styles.modalDetails}>
               <div className={styles.modalMetaRow}>
                 <span className={styles.modalCategoryBadge}>{activeProject.category}</span>
-                <span className={styles.modalLocation}>
-                  <MapPin size={13} /> {activeProject.location}
-                </span>
-                <span className={styles.modalYear}>Completed: {activeProject.year}</span>
+                {activeProject.location && (
+                  <span className={styles.modalLocation}>
+                    <MapPin size={13} /> {activeProject.location}
+                  </span>
+                )}
+                {activeProject.year && (
+                  <span className={styles.modalYear}>Completed: {activeProject.year}</span>
+                )}
               </div>
 
               <h3 className={styles.modalProjectTitle}>{activeProject.title}</h3>
               <p className={styles.modalProjectDesc}>{activeProject.description}</p>
 
-              <div className={styles.scopeBox}>
-                <span className={styles.scopeLabel}>SCOPE OF WORK</span>
-                <p className={styles.scopeText}>{activeProject.scope}</p>
-              </div>
+              {activeProject.scope && (
+                <div className={styles.scopeBox}>
+                  <span className={styles.scopeLabel}>SCOPE OF WORK</span>
+                  <p className={styles.scopeText}>{activeProject.scope}</p>
+                </div>
+              )}
 
               <div className={styles.modalActions}>
                 <button

@@ -1,6 +1,5 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from './CategoryCarousel.module.scss';
 
 const CAROUSEL_CATEGORIES = [
@@ -15,19 +14,13 @@ const CAROUSEL_CATEGORIES = [
   { id: 'turnkey', title: 'Turnkey Execution', image: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1200&auto=format&fit=crop' },
 ];
 
+// Continuously scrolling, marquee-style category strip. Items stay fully
+// clickable — only the CSS keyframe on the track wrapper does the looping,
+// the same technique as the text Marquee (duplicate the content once, slide
+// exactly -50%, jump back). The duplicate copy is aria-hidden/untabbable
+// since it's a purely visual continuation of the real, interactive one.
 const CategoryCarousel = ({ activeCategoryId, onSelectCategory }) => {
   const navigate = useNavigate();
-  const scrollContainerRef = useRef(null);
-
-  const scroll = (direction) => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 240;
-      scrollContainerRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
-      });
-    }
-  };
 
   const handleCategoryClick = (id) => {
     if (onSelectCategory) {
@@ -37,52 +30,38 @@ const CategoryCarousel = ({ activeCategoryId, onSelectCategory }) => {
     }
   };
 
-  return (
-    <div className={styles.carouselSection}>
-      <div className={`container ${styles.carouselContainer}`}>
-        {/* Navigation Buttons */}
-        <button 
-          className={`${styles.navBtn} ${styles.prev}`} 
-          onClick={() => scroll('left')}
-          aria-label="Scroll left"
-        >
-          <ChevronLeft size={20} />
-        </button>
-
-        <div className={styles.scrollWrapper} ref={scrollContainerRef}>
-          <div className={styles.categoriesTrack}>
-            {CAROUSEL_CATEGORIES.map((cat) => {
-              const isActive = activeCategoryId === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  className={`${styles.categoryItem} ${isActive ? styles.activeItem : ''}`}
-                  onClick={() => handleCategoryClick(cat.id)}
-                >
-                  <div className={styles.thumbnailWrapper}>
-                    <div className={styles.imageRing}>
-                      <img 
-                        src={cat.image} 
-                        alt={cat.title} 
-                        className={styles.thumbnailImage} 
-                        loading="lazy"
-                      />
-                    </div>
-                  </div>
-                  <span className={styles.categoryTitle}>{cat.title}</span>
-                </button>
-              );
-            })}
+  const renderItems = (isDuplicate) => CAROUSEL_CATEGORIES.map((cat) => {
+    const isActive = activeCategoryId === cat.id;
+    return (
+      <button
+        key={`${isDuplicate ? 'dup' : 'main'}-${cat.id}`}
+        type="button"
+        className={`${styles.categoryItem} ${isActive ? styles.activeItem : ''}`}
+        onClick={() => handleCategoryClick(cat.id)}
+        tabIndex={isDuplicate ? -1 : 0}
+        aria-hidden={isDuplicate || undefined}
+      >
+        <div className={styles.thumbnailWrapper}>
+          <div className={styles.imageRing}>
+            <img
+              src={cat.image}
+              alt={cat.title}
+              className={styles.thumbnailImage}
+              loading="lazy"
+              decoding="async"
+            />
           </div>
         </div>
+        <span className={styles.categoryTitle}>{cat.title}</span>
+      </button>
+    );
+  });
 
-        <button 
-          className={`${styles.navBtn} ${styles.next}`} 
-          onClick={() => scroll('right')}
-          aria-label="Scroll right"
-        >
-          <ChevronRight size={20} />
-        </button>
+  return (
+    <div className={styles.carouselSection}>
+      <div className={styles.trackWrapper}>
+        <div className={styles.track}>{renderItems(false)}</div>
+        <div className={styles.track}>{renderItems(true)}</div>
       </div>
     </div>
   );
