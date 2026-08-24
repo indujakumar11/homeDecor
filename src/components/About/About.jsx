@@ -50,7 +50,7 @@ const About = ({ onOpenConsultation }) => {
             <div className={styles.imageFrameOuter}>
               <div ref={imageWrapperRef} className={styles.imageWrapper}>
                 <img
-                  src="assets/services/murals.jpg"
+                  src="assets/services/murals.webp"
                   alt="Black Shades Master Craftsmen and Sculptural Artwork"
                   className={styles.aboutImage}
                   loading="lazy"

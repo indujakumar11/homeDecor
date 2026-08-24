@@ -6,7 +6,7 @@ export const servicesData = [
     subtitle: "Artistry in Three Dimensions",
     description: "3D murals, themed walls, texture art, corporate branding walls and more, crafted with architectural precision.",
     details: "From majestic wildlife and classical relief sculptures to abstract geometric textures and corporate heritage walls. We employ high-density sculpting composites, stone relief techniques, and metallic patina finishes tailored for luxury residences and corporate lobbies.",
-    image: "assets/services/murals.jpg",
+    image: "assets/services/murals.webp",
     features: [
       "Custom 3D Bas-Relief & High-Relief",
       "Themed Feature Walls & Accent Panels",
@@ -22,7 +22,7 @@ export const servicesData = [
     subtitle: "Durable Grandeur & Precision",
     description: "Life-size sculptures, busts, statues, art installations and decorative pieces made with weather-resistant fiberglass.",
     details: "Precision-molded and hand-finished FRP (Fiberglass Reinforced Polymer) sculptures. Ideal for grand indoor atriums, landscaped gardens, temple architecture, and commercial landmarks, offering incredible structural strength with lightweight versatility.",
-    image: "assets/services/frp-sculptures.jpg",
+    image: "assets/services/frp-sculptures.webp",
     features: [
       "Life-Size Figurines & Deities (Ganesha, Buddha, Devas)",
       "Contemporary Abstract Sculptures",
@@ -38,7 +38,7 @@ export const servicesData = [
     subtitle: "Classical Elegance Meets Durability",
     description: "Premium marble powder + resin sculptures with fine detailing and exceptional durability for timeless aesthetics.",
     details: "Cast using bonded micro-fine Italian and Makrana marble stone powder with specialized polymer binders. Delivers the authentic cool touch, substantial weight, and museum-grade definition of hand-carved stone with superior chip resistance.",
-    image: "assets/services/marble-sculptures.jpg",
+    image: "assets/services/marble-sculptures.webp",
     features: [
       "Classical Greek & Roman Busts",
       "Sacred Temple Sculptures & Pedestals",
@@ -54,7 +54,7 @@ export const servicesData = [
     subtitle: "Computational Architecture & Form",
     description: "Parametric walls, 3D logo installations, world maps, timeline walls and custom feature designs.",
     details: "Integrating computational algorithms with CNC precision woodworking and acrylic fabrication. From undulating wooden wave walls to backlit layered world maps and complex architectural ceiling baffles.",
-    image: "assets/services/parametric.jpg",
+    image: "assets/services/parametric.webp",
     features: [
       "Layered Backlit 3D World Maps",
       "Undulating Wooden Wave Walls & Ribs",
@@ -70,7 +70,7 @@ export const servicesData = [
     subtitle: "Seamless Turnkey Interiors",
     description: "Gypsum, louvers, WPC, MDF, false ceilings, partitions and comprehensive turnkey interior craftsmanship.",
     details: "Complete interior fit-outs combining fluted wooden louvers, charcoal acoustic panels, concealed LED cove lighting, custom entertainment units, and architectural partitions for high-end residential and commercial spaces.",
-    image: "assets/services/interior-decor.jpg",
+    image: "assets/services/interior-decor.webp",
     features: [
       "Designer Fluted Louvers & WPC Cladding",
       "Multi-Tiered Gypsum False Ceilings",
@@ -86,7 +86,7 @@ export const servicesData = [
     subtitle: "Distinctive Landmark Branding",
     description: "Pylon signs, illuminated signage, ACP signage and complete branding architectural solutions.",
     details: "Commanding exterior presence with architectural monolith pylons, 3D acrylic LED front-lit / halo-lit lettering, ACP composite paneling, and weather-proof facade signage engineered for maximum impact.",
-    image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop",
+    image: "assets/services/signage.webp",
     features: [
       "Highway & Entrance Pylon Monoliths",
       "3D Halo-Lit & Front-Lit LED Channel Letters",
@@ -102,7 +102,7 @@ export const servicesData = [
     subtitle: "Inspiring Workspaces & Executive Suites",
     description: "MD cabins, office spaces, reception areas, meeting rooms and high-performance corporate environments.",
     details: "Tailored executive environments designed to impress clients and elevate productivity. We craft statement reception desks, executive MD cabins with custom leather & veneer accents, soundproof boardroom enclosures, and collaborative lounges.",
-    image: "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1200&auto=format&fit=crop",
+    image: "assets/services/corporate.webp",
     features: [
       "Executive MD Cabins & Director Suites",
       "Bespoke Boardrooms & Conference Tables",
@@ -118,7 +118,7 @@ export const servicesData = [
     subtitle: "Optimized Retail & Storage Environments",
     description: "Warehouse design, supermarket interiors, retail display fixtures and smart commercial storage solutions.",
     details: "End-to-end retail merchandising layouts and industrial storage structures. Incorporating modular heavy-duty display gondolas, wooden organic produce racks, modern track lighting, and optimized customer circulation paths.",
-    image: "https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=1200&auto=format&fit=crop",
+    image: "assets/services/supermarket.webp",
     features: [
       "Supermarket Racking & Boutique Display Fixtures",
       "Produce Gondolas & Refrigeration Trims",
@@ -134,7 +134,7 @@ export const servicesData = [
     subtitle: "One Vision. One Partner. Complete Solutions.",
     description: "From idea, design and fabrication to installation — we deliver end-to-end project execution.",
     details: "A single-source partnership eliminating coordination headaches. We oversee concept drafting, 3D visualization, material procurement, workshop fabrication, on-site civil works, structural installation, and final handover.",
-    image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1200&auto=format&fit=crop",
+    image: "assets/services/turnkey.webp",
     features: [
       "Architectural 3D Renders & Shop Drawings",
       "In-House Fabrication & Workshop Crafting",

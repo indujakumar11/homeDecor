@@ -3,15 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import styles from './CategoryCarousel.module.scss';
 
 const CAROUSEL_CATEGORIES = [
-  { id: 'murals', title: 'Custom Murals', image: 'assets/services/murals.jpg' },
-  { id: 'frp-sculptures', title: 'FRP Sculptures', image: 'assets/services/frp-sculptures.jpg' },
-  { id: 'marble-sculptures', title: 'Marble Sculptures', image: 'assets/services/marble-sculptures.jpg' },
-  { id: 'parametric', title: '3D Parametric', image: 'assets/services/parametric.jpg' },
-  { id: 'interior-decor', title: 'Interior Décor', image: 'assets/services/interior-decor.jpg' },
-  { id: 'signage', title: 'Signage & Pylons', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1200&auto=format&fit=crop' },
-  { id: 'corporate', title: 'Corporate Interiors', image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1200&auto=format&fit=crop' },
-  { id: 'supermarket', title: 'Retail & Warehouse', image: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=1200&auto=format&fit=crop' },
-  { id: 'turnkey', title: 'Turnkey Execution', image: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=1200&auto=format&fit=crop' },
+  { id: 'murals', title: 'Custom Murals', image: 'assets/services/murals.webp' },
+  { id: 'frp-sculptures', title: 'FRP Sculptures', image: 'assets/services/frp-sculptures.webp' },
+  { id: 'marble-sculptures', title: 'Marble Sculptures', image: 'assets/services/marble-sculptures.webp' },
+  { id: 'parametric', title: '3D Parametric', image: 'assets/services/parametric.webp' },
+  { id: 'interior-decor', title: 'Interior Décor', image: 'assets/services/interior-decor.webp' },
+  { id: 'signage', title: 'Signage & Pylons', image: 'assets/services/signage.webp' },
+  { id: 'corporate', title: 'Corporate Interiors', image: 'assets/services/corporate.webp' },
+  { id: 'supermarket', title: 'Retail & Warehouse', image: 'assets/services/supermarket.webp' },
+  { id: 'turnkey', title: 'Turnkey Execution', image: 'assets/services/turnkey.webp' },
 ];
 
 // Continuously scrolling, marquee-style category strip. Items stay fully

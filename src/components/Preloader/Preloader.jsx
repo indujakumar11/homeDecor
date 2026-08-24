@@ -6,7 +6,7 @@ import { lockScroll, unlockScroll as unlockScrollShared } from '../../lib/scroll
 import LogoMark from '../common/LogoMark';
 import styles from './Preloader.module.scss';
 
-const HERO_IMAGE_SRC = 'assets/hero/hero-bg.jpg';
+const HERO_IMAGE_SRC = 'assets/hero/hero-bg.webp';
 const MAX_EXTRA_WAIT = 500; // ms — hard cap on top of the intro if the hero image is slow/broken
 
 function preloadImage(src) {

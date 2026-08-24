@@ -33,14 +33,15 @@ const CTA = ({ onOpenConsultation }) => {
   return (
     <section ref={sectionRef} className={styles.ctaSection}>
       <div className={styles.ctaBg}>
-        <img
-          ref={bgImgRef}
-          src="assets/services/murals.jpg"
-          alt="Luxury Architecture and Relief Murals"
-          className={styles.ctaBgImage}
-          loading="lazy"
-          decoding="async"
-        />
+        <div ref={bgImgRef} className={styles.ctaBgScale}>
+          <img
+            src="assets/services/murals.webp"
+            alt="Luxury Architecture and Relief Murals"
+            className={styles.ctaBgImage}
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
         <div className={styles.ctaOverlay} />
         <div className="grid-bg-overlay" />
       </div>

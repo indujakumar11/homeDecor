@@ -104,7 +104,7 @@ const Footer = ({ onOpenConsultation }) => {
 
           {/* Column 2: Navigation Links */}
           <div className={styles.navCol}>
-            <h4 className={styles.colTitle}>EXPLORE</h4>
+            <h3 className={styles.colTitle}>EXPLORE</h3>
             <ul className={styles.linksList}>
               {NAV_LINKS.map((link) => (
                 <li key={link.name}>
@@ -121,7 +121,7 @@ const Footer = ({ onOpenConsultation }) => {
 
           {/* Column 3: Services Directory */}
           <div className={styles.servicesCol}>
-            <h4 className={styles.colTitle}>WHAT WE DO</h4>
+            <h3 className={styles.colTitle}>WHAT WE DO</h3>
             <ul className={styles.linksList}>
               {SERVICE_LINKS.map((svc) => (
                 <li key={svc}>
@@ -138,7 +138,7 @@ const Footer = ({ onOpenConsultation }) => {
 
           {/* Column 4: Contact & Brochure QR Accent */}
           <div className={styles.contactCol}>
-            <h4 className={styles.colTitle}>CONTACT STUDIO</h4>
+            <h3 className={styles.colTitle}>CONTACT STUDIO</h3>
             
             <div className={styles.footerContactList}>
               <a

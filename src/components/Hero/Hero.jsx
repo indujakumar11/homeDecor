@@ -72,14 +72,15 @@ const Hero = ({ onOpenConsultation }) => {
     <section id="home" ref={sectionRef} className={styles.heroSection}>
       {/* Background Image with Dark Vignette & Parallax feel */}
       <div className={styles.heroBgWrapper}>
-        <img
-          ref={bgImageRef}
-          src="assets/hero/hero-bg.jpg"
-          alt="Black Shades Luxury Interior & Architectural Decor"
-          className={styles.heroBgImage}
-          decoding="async"
-          fetchPriority="high"
-        />
+        <div ref={bgImageRef} className={styles.heroBgScale}>
+          <img
+            src="assets/hero/hero-bg.webp"
+            alt="Black Shades Luxury Interior & Architectural Decor"
+            className={styles.heroBgImage}
+            decoding="async"
+            fetchPriority="high"
+          />
+        </div>
         <div className={styles.heroOverlayGradient} />
         <div className={styles.heroVignette} />
         <div className="grid-bg-overlay" />
@@ -160,7 +161,7 @@ const Hero = ({ onOpenConsultation }) => {
         type="button"
         className={styles.scrollIndicator}
         onClick={() => handleScrollToSection('trust-strip')}
-        aria-label="Scroll down to explore"
+        aria-label="Scroll to explore the site"
       >
         <span className={styles.scrollLabel}>SCROLL TO EXPLORE</span>
         <div className={styles.scrollIconWrapper}>

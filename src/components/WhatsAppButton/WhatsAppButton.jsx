@@ -13,7 +13,7 @@ const WhatsAppButton = () => {
         target="_blank"
         rel="noopener noreferrer"
         className={styles.whatsappBtn}
-        aria-label="Chat with Black Shades Home Decors on WhatsApp"
+        aria-label="Chat on WhatsApp with Black Shades Home Decors"
         title="Chat on WhatsApp (+91 97908 38319)"
       >
         {/* Custom SVG WhatsApp / Luxury Message Icon */}

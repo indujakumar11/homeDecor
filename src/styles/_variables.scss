@@ -26,9 +26,9 @@
   --color-text-dim: #6e6a61;
 
   // Typography
-  --font-serif: 'Cinzel', Georgia, serif;
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  --font-serif: 'Cinzel', 'Cinzel Fallback', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', 'Outfit Fallback', 'Plus Jakarta Sans', 'Plus Jakarta Sans Fallback', sans-serif;
 
   // Editorial Type Scale
   --text-hero: clamp(2.75rem, 6.8vw, 6.25rem);

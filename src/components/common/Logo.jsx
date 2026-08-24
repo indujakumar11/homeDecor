@@ -4,7 +4,7 @@ import styles from './Logo.module.scss';
 
 const Logo = ({ size = 'medium', showTagline = false, className = '' }) => {
   return (
-    <a href="#home" className={`${styles.brandLogo} ${styles[size]} ${className}`} aria-label="Black Shades Home Decors Home">
+    <a href="#home" className={`${styles.brandLogo} ${styles[size]} ${className}`}>
       {/* Geometric Hexagonal BS Monogram */}
       <div className={styles.symbolWrapper}>
         <LogoMark className={styles.logoSvg} />

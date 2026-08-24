@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
 import Home from './pages/Home';
@@ -14,7 +14,10 @@ import ScrollToTop from './components/common/ScrollToTop';
 import SmoothScrollProvider from './components/SmoothScrollProvider';
 import PageTransition from './components/PageTransition/PageTransition';
 import Preloader from './components/Preloader/Preloader';
-import AdminApp from './admin/AdminApp';
+
+// Lazy-loaded: public visitors never need the admin bundle, so it's split
+// into its own chunk and only fetched when someone actually visits /admin.
+const AdminApp = lazy(() => import('./admin/AdminApp'));
 
 // The public marketing site: Navbar/Footer/WhatsApp/Lenis/GSAP page
 // transitions all live here, exactly as before. Unrelated to /admin.
@@ -74,7 +77,14 @@ function App() {
       <ScrollToTop />
       <Routes>
         {/* Admin portal: its own layout, no public-site chrome or animation. */}
-        <Route path="/admin/*" element={<AdminApp />} />
+        <Route
+          path="/admin/*"
+          element={(
+            <Suspense fallback={null}>
+              <AdminApp />
+            </Suspense>
+          )}
+        />
         {/* Everything else is the existing public site, unchanged. */}
         <Route path="/*" element={<PublicSite />} />
       </Routes>

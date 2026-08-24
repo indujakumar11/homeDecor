@@ -35,14 +35,15 @@ const Showcase = ({ onOpenConsultation }) => {
   return (
     <section ref={sectionRef} className={styles.showcaseSection}>
       <div className={styles.showcaseBg}>
-        <img
-          ref={bgImgRef}
-          src="assets/hero/hero-bg.jpg"
-          alt="Black Shades Architectural Masterpiece"
-          className={styles.bgImg}
-          loading="lazy"
-          decoding="async"
-        />
+        <div ref={bgImgRef} className={styles.bgImgScale}>
+          <img
+            src="assets/hero/hero-bg.webp"
+            alt="Black Shades Architectural Masterpiece"
+            className={styles.bgImg}
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
         <div className={styles.showcaseOverlay} />
       </div>
 
