@@ -51,18 +51,6 @@ const Hero = ({ onOpenConsultation }) => {
         .from(subtextRef.current, { opacity: 0, y: 18, duration: 0.7 }, 0.62)
         .from(ctaRef.current.children, { opacity: 0, y: 16, duration: 0.6, stagger: 0.1 }, 0.78)
         .from(pillsRef.current, { opacity: 0, y: 14, duration: 0.6 }, 0.95);
-
-      // Gentle continued scale as the user scrolls past the hero
-      gsap.to(bgImageRef.current, {
-        scale: 1.16,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: 'top top',
-          end: 'bottom top',
-          scrub: true,
-        },
-      });
     });
 
     return () => mm.revert();

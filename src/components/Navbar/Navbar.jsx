@@ -16,11 +16,16 @@ const NAV_LINKS = [
   { name: 'CONTACT', href: '/contact' },
 ];
 
+const HIDE_THRESHOLD = 120; // px — stay visible until scrolled past this, regardless of direction
+const HIDE_DELTA = 4; // px — ignore sub-pixel/inertia jitter when deciding direction
+
 const Navbar = ({ onOpenConsultation }) => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const headerRef = useRef(null);
   const drawerListRef = useRef(null);
+  const lastScrollYRef = useRef(0);
   // Tracks whether *this* effect is the one currently holding the shared
   // scroll lock, so its mount-time run (drawer starts closed) never
   // releases a lock some other holder (e.g. the Preloader) still needs.
@@ -42,16 +47,24 @@ const Navbar = ({ onOpenConsultation }) => {
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 40) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
+      const currentY = window.scrollY;
+      setIsScrolled(currentY > 40);
+
+      // Auto-hide on scroll down, reveal on scroll up. Stay visible near the
+      // top so the header doesn't disappear on a small initial scroll.
+      if (mobileMenuOpen || currentY <= HIDE_THRESHOLD) {
+        setIsHidden(false);
+      } else if (currentY > lastScrollYRef.current + HIDE_DELTA) {
+        setIsHidden(true);
+      } else if (currentY < lastScrollYRef.current - HIDE_DELTA) {
+        setIsHidden(false);
       }
+      lastScrollYRef.current = currentY;
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [mobileMenuOpen]);
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -76,7 +89,7 @@ const Navbar = ({ onOpenConsultation }) => {
 
   return (
     <>
-      <header ref={headerRef} className={`${styles.header} ${isScrolled ? styles.scrolled : ''}`}>
+      <header ref={headerRef} className={`${styles.header} ${isScrolled ? styles.scrolled : ''} ${isHidden ? styles.hidden : ''}`}>
         <div className={`container ${styles.navContainer}`}>
           {/* Brand Monogram & Title */}
           <Logo size="small" />
@@ -88,6 +101,7 @@ const Navbar = ({ onOpenConsultation }) => {
                 <li key={link.name} className={styles.navItem}>
                   <NavLink
                     to={link.href}
+                    data-cursor="hand"
                     className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
                   >
                     {link.name}

@@ -41,6 +41,14 @@
   padding: 0;
 }
 
+// Hide the system cursor only once the custom cursor (src/components/common/Cursor.jsx)
+// has actually mounted and confirmed a non-touch device — never hard-coded,
+// so a JS failure can't leave a visitor with no cursor at all.
+body.has-custom-cursor,
+body.has-custom-cursor * {
+  cursor: none !important;
+}
+
 html {
   scroll-behavior: smooth;
   font-size: 16px;

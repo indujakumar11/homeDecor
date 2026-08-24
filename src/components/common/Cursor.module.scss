@@ -1,0 +1,66 @@
+.cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: difference;
+  transition: opacity 0.3s ease;
+}
+
+.cursorDot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #ffffff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.2s, height 0.2s, opacity 0.2s;
+}
+
+.cursorRing {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ffffff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), height 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+  opacity: 0.6;
+}
+
+:global(body.cursor-hover) .cursorDot {
+  width: 12px;
+  height: 12px;
+  opacity: 0.5;
+}
+
+:global(body.cursor-hover) .cursorRing {
+  width: 60px;
+  height: 60px;
+  opacity: 0.3;
+}
+
+// Hand-pointer icon: swaps in for the dot/ring specifically over navbar
+// items (elements marked data-cursor="hand"), tracking the same instant
+// (non-lagged) position as the dot.
+.cursorHand {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transform: translate(-20%, -15%) scale(0.6);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+:global(body.cursor-hand) .cursorDot,
+:global(body.cursor-hand) .cursorRing {
+  opacity: 0;
+}
+
+:global(body.cursor-hand) .cursorHand {
+  opacity: 1;
+  transform: translate(-20%, -15%) scale(1);
+}

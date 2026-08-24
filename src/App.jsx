@@ -14,6 +14,7 @@ import ScrollToTop from './components/common/ScrollToTop';
 import SmoothScrollProvider from './components/SmoothScrollProvider';
 import PageTransition from './components/PageTransition/PageTransition';
 import Preloader from './components/Preloader/Preloader';
+import Cursor from './components/common/Cursor';
 
 // Lazy-loaded: public visitors never need the admin bundle, so it's split
 // into its own chunk and only fetched when someone actually visits /admin.
@@ -38,6 +39,7 @@ function PublicSite() {
     <>
       <SmoothScrollProvider />
       <Preloader />
+      <Cursor />
       <div className="app-root">
         {/* Sticky Header Navigation */}
         <Navbar onOpenConsultation={handleOpenConsultation} />

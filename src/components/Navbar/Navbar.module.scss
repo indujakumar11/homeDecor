@@ -8,11 +8,16 @@
   width: 100%;
   height: var(--header-height);
   z-index: 1000;
-  transition: all var(--transition-smooth);
+  transition: all var(--transition-smooth), transform 0.35s ease;
   background: #0a0a0a;
   border-bottom: 1px solid rgba(181, 138, 60, 0.18);
   display: flex;
   align-items: center;
+  will-change: transform;
+
+  &.hidden {
+    transform: translateY(-100%);
+  }
 
   &.scrolled {
     background: #0a0a0a;
@@ -71,9 +76,8 @@
   color: var(--color-cream);
   opacity: 0.82;
   padding: 0.5rem 0;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
+  display: inline-block;
+  position: relative;
   transition: all var(--transition-fast);
 
   &:hover {
@@ -81,7 +85,6 @@
     opacity: 1;
     .navIndicator {
       width: 100%;
-      opacity: 1;
     }
   }
 
@@ -90,19 +93,20 @@
     opacity: 1;
     .navIndicator {
       width: 100%;
-      opacity: 1;
     }
   }
 }
 
+// Underline sweeps in from the left on hover, rather than growing from the
+// center — anchored via absolute positioning so it doesn't affect layout.
 .navIndicator {
-  display: block;
+  position: absolute;
+  left: 0;
+  bottom: -3px;
   width: 0;
   height: 2px;
   background: linear-gradient(90deg, var(--color-gold-dark), var(--color-gold-light), var(--color-gold-dark));
-  margin-top: 3px;
-  opacity: 0;
-  transition: all var(--transition-fast);
+  transition: width var(--transition-smooth);
 }
 
 .navActions {
