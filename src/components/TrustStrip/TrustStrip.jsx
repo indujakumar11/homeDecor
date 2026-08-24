@@ -24,7 +24,7 @@ const TrustStrip = () => {
             return (
               <div key={item.id} className={styles.trustItem}>
                 <div className={styles.iconBox}>
-                  <IconComponent size={22} className={styles.trustIcon} />
+                  <IconComponent size={17} className={styles.trustIcon} />
                 </div>
                 <div className={styles.textBox}>
                   <h2 className={styles.itemTitle}>{item.title}</h2>

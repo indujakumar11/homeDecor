@@ -51,6 +51,21 @@ const Hero = ({ onOpenConsultation }) => {
         .from(subtextRef.current, { opacity: 0, y: 18, duration: 0.7 }, 0.62)
         .from(ctaRef.current.children, { opacity: 0, y: 16, duration: 0.6, stagger: 0.1 }, 0.78)
         .from(pillsRef.current, { opacity: 0, y: 14, duration: 0.6 }, 0.95);
+
+      // Gentle parallax: background drifts down slightly slower than the
+      // page scrolls, so it reads as nearly still against the text moving
+      // past it at full scroll speed. Targets the unfiltered scale wrapper
+      // (not the filtered <img>) to stay on the compositor-only fast path.
+      gsap.to(bgImageRef.current, {
+        y: 120,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true,
+        },
+      });
     });
 
     return () => mm.revert();
