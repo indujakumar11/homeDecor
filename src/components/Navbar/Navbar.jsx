@@ -83,6 +83,7 @@ const Navbar = ({ onOpenConsultation }) => {
       if (holdsLockRef.current) {
         unlockScroll();
         holdsLockRef.current = false;
+        getLenis()?.start();
       }
     };
   }, [mobileMenuOpen]);
