@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pointer } from 'lucide-react';
 import styles from './Cursor.module.scss';
 
@@ -12,12 +12,17 @@ const DAMPING = 0.75;
 // to refs' style via rAF (not React state) so the 60fps loop never triggers
 // a re-render. Skipped entirely on touch devices.
 const Cursor = () => {
+  // Touch devices never get the cursor markup mounted at all — previously
+  // the effect below just skipped attaching listeners, but the dot/ring/
+  // hand elements still rendered with no left/top ever set, which left a
+  // static circle stuck in the viewport's top-left corner on mobile.
+  const [shouldRender] = useState(() => !('ontouchstart' in window));
   const dotRef = useRef(null);
   const ringRef = useRef(null);
   const handRef = useRef(null);
 
   useEffect(() => {
-    if ('ontouchstart' in window) return undefined;
+    if (!shouldRender) return undefined;
 
     const dot = dotRef.current;
     const ring = ringRef.current;
@@ -91,7 +96,9 @@ const Cursor = () => {
       cancelAnimationFrame(rafId);
       document.body.classList.remove('has-custom-cursor', 'cursor-hover', 'cursor-hand');
     };
-  }, []);
+  }, [shouldRender]);
+
+  if (!shouldRender) return null;
 
   return (
     <div className={styles.cursor} aria-hidden="true">

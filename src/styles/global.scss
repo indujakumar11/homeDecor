@@ -39,6 +39,10 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  // Removes the default blue/grey flash mobile WebKit/Blink browsers show
+  // on tap — doesn't affect :focus-visible outlines, which stay for
+  // accessibility.
+  -webkit-tap-highlight-color: transparent;
 }
 
 // Hide the system cursor only once the custom cursor (src/components/common/Cursor.jsx)
