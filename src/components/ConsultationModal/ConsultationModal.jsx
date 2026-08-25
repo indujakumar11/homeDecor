@@ -108,7 +108,7 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
 
   return (
     <div className={styles.modalOverlay} onClick={onClose} role="dialog" aria-modal="true">
-      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+      <div className={styles.modalContent} data-lenis-prevent onClick={(e) => e.stopPropagation()}>
         <button className={styles.closeButton} onClick={onClose} aria-label="Close consultation modal">
           <X size={22} />
         </button>

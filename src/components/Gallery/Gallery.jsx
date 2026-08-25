@@ -1,7 +1,8 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { ArrowRight, MapPin, Eye, X, Calendar } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
-import { gsap } from '../../lib/smoothScroll';
+import { gsap, getLenis } from '../../lib/smoothScroll';
+import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import { getImages } from '../../services/galleryService';
 import { categories, getCategoryName } from '../../data/categories';
 import styles from './Gallery.module.scss';
@@ -12,6 +13,31 @@ const Gallery = ({ onOpenConsultation }) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeProject, setActiveProject] = useState(null);
   const gridRef = useRef(null);
+  // Only release the shared scroll lock if this modal is the one holding
+  // it — mirrors ConsultationModal's guard so an unmount never clobbers a
+  // lock some other holder still needs.
+  const holdsLockRef = useRef(false);
+
+  useEffect(() => {
+    const lenis = getLenis();
+    if (activeProject) {
+      lockScroll();
+      holdsLockRef.current = true;
+      lenis?.stop();
+    } else if (holdsLockRef.current) {
+      unlockScroll();
+      holdsLockRef.current = false;
+      lenis?.start();
+    }
+
+    return () => {
+      if (holdsLockRef.current) {
+        unlockScroll();
+        holdsLockRef.current = false;
+        getLenis()?.start();
+      }
+    };
+  }, [activeProject]);
 
   // Sourced from the shared gallery data layer (services/galleryService.js)
   // so admin-managed changes appear here without any code changes.
@@ -133,7 +159,7 @@ const Gallery = ({ onOpenConsultation }) => {
 
       {/* Project Lightbox Modal */}
       {activeProject && (
-        <div className={styles.modalBackdrop} onClick={handleCloseProject} role="dialog" aria-modal="true">
+        <div className={styles.modalBackdrop} data-lenis-prevent onClick={handleCloseProject} role="dialog" aria-modal="true">
           <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
             <button className={styles.modalCloseBtn} onClick={handleCloseProject} aria-label="Close project view">
               <X size={22} />

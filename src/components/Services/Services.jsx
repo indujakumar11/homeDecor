@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { servicesData } from '../../data/servicesData';
 import { ArrowRight, Sparkles, Check, X, Calendar } from 'lucide-react';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
+import { getLenis } from '../../lib/smoothScroll';
+import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import styles from './Services.module.scss';
 
 const Services = ({ onOpenConsultation }) => {
@@ -11,7 +13,32 @@ const Services = ({ onOpenConsultation }) => {
   const navigate = useNavigate();
   // Track whether the modal was opened from the Home page carousel
   const openedFromHomeRef = useRef(false);
+  // Only release the shared scroll lock if this modal is the one holding
+  // it — mirrors ConsultationModal's guard so an unmount never clobbers a
+  // lock some other holder still needs.
+  const holdsLockRef = useRef(false);
   const gridRef = useScrollReveal({ selector: `.${styles.serviceCard}`, y: 32 });
+
+  useEffect(() => {
+    const lenis = getLenis();
+    if (selectedService) {
+      lockScroll();
+      holdsLockRef.current = true;
+      lenis?.stop();
+    } else if (holdsLockRef.current) {
+      unlockScroll();
+      holdsLockRef.current = false;
+      lenis?.start();
+    }
+
+    return () => {
+      if (holdsLockRef.current) {
+        unlockScroll();
+        holdsLockRef.current = false;
+        getLenis()?.start();
+      }
+    };
+  }, [selectedService]);
 
   useEffect(() => {
     if (location.state && location.state.selectedServiceId) {
@@ -100,8 +127,9 @@ const Services = ({ onOpenConsultation }) => {
       {/* Service Detail Modal */}
       {selectedService && (
         <div className={styles.modalBackdrop} onClick={handleCloseModal} role="dialog" aria-modal="true">
-          <div 
-            className={styles.modalContainer} 
+          <div
+            className={styles.modalContainer}
+            data-lenis-prevent
             onClick={(e) => e.stopPropagation()}
           >
             <button 
