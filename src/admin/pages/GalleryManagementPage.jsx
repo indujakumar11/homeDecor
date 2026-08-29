@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ImagePlus, ImageOff } from 'lucide-react';
-import { getImages, deleteImage } from '../../services/galleryService';
-import { categories } from '../../data/categories';
+import { Search, ImagePlus, ImageOff, Loader2 } from 'lucide-react';
+import { getImages, getCategories, deleteImage } from '../../services/galleryService';
 import AdminLayout from '../layouts/AdminLayout';
 import ImageCard from '../components/ImageCard';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -12,13 +11,28 @@ import styles from './GalleryManagementPage.module.scss';
 const GalleryManagementPage = () => {
   const navigate = useNavigate();
   const [images, setImages] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [deletingImage, setDeletingImage] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [actionError, setActionError] = useState('');
+
+  const loadAll = async () => {
+    setStatus('loading');
+    try {
+      const [items, cats] = await Promise.all([getImages(), getCategories()]);
+      setImages(items);
+      setCategories(cats);
+      setStatus('ready');
+    } catch {
+      setStatus('error');
+    }
+  };
 
   useEffect(() => {
-    setImages(getImages());
+    loadAll();
   }, []);
 
   useEffect(() => {
@@ -27,7 +41,13 @@ const GalleryManagementPage = () => {
     return () => clearTimeout(timer);
   }, [successMessage]);
 
-  const refresh = () => setImages(getImages());
+  const refresh = async () => {
+    try {
+      setImages(await getImages());
+    } catch {
+      setActionError('Unable to refresh the gallery. Please reload the page.');
+    }
+  };
 
   const filteredImages = useMemo(() => {
     return images.filter((img) => {
@@ -37,18 +57,24 @@ const GalleryManagementPage = () => {
     });
   }, [images, activeCategory, searchQuery]);
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deletingImage) return;
-    deleteImage(deletingImage.id);
+    const target = deletingImage;
     setDeletingImage(null);
-    refresh();
-    setSuccessMessage('Image deleted successfully.');
+    try {
+      await deleteImage(target.id);
+      await refresh();
+      setSuccessMessage('Image deleted successfully.');
+    } catch {
+      setActionError('Failed to delete this image. Please try again.');
+    }
   };
 
   return (
     <AdminLayout fullBleed>
       <div className={styles.fullscreenWrap}>
         <InlineAlert type="success" message={successMessage} className={styles.toast} />
+        <InlineAlert type="error" message={actionError} className={styles.toast} />
 
         <div className={styles.toolbar}>
           <div className={styles.searchBox}>
@@ -88,7 +114,18 @@ const GalleryManagementPage = () => {
           </Link>
         </div>
 
-        {filteredImages.length === 0 ? (
+        {status === 'loading' ? (
+          <div className={styles.emptyState}>
+            <Loader2 size={32} className={styles.spinIcon} />
+            <p>Loading decor…</p>
+          </div>
+        ) : status === 'error' ? (
+          <div className={styles.emptyState}>
+            <ImageOff size={32} />
+            <p>Unable to load decor. Please try again.</p>
+            <button type="button" className={styles.emptyCta} onClick={loadAll}>Retry</button>
+          </div>
+        ) : filteredImages.length === 0 ? (
           <div className={styles.emptyState}>
             <ImageOff size={32} />
             <p>No images found.</p>

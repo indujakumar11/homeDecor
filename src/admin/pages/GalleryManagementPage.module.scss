@@ -148,6 +148,19 @@
   font-weight: 600;
   color: var(--admin-gold-dark);
   text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.spinIcon {
+  animation: gallerySpin 0.8s linear infinite;
+}
+
+@keyframes gallerySpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 600px) {

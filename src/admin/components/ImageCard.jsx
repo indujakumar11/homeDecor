@@ -1,10 +1,9 @@
 import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
-import { getCategoryName } from '../../data/categories';
 import styles from './ImageCard.module.scss';
 
 const ImageCard = ({ image, onEdit, onDelete }) => {
-  const categoryName = getCategoryName(image.categoryId);
+  const categoryName = image.categoryName;
 
   return (
     <div className={styles.card}>

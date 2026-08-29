@@ -1,0 +1,37 @@
+@use '../styles/admin-variables' as *;
+
+.centeredState {
+  flex: 1;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  color: var(--admin-text-muted);
+  text-align: center;
+}
+
+.spinIcon {
+  animation: editImageSpin 0.8s linear infinite;
+  color: var(--admin-gold-dark);
+}
+
+@keyframes editImageSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.retryBtn {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--admin-gold-dark);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}

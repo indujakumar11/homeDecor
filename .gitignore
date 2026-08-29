@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Environment variables (Supabase keys, etc.) — never commit these
+.env
+.env.local
+.env.*.local
+
+# Cloudflare Worker — local dev state and secrets, never commit these
+worker/.wrangler
+.wrangler
+.dev.vars
+.dev.vars.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

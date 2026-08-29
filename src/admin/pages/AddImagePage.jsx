@@ -7,8 +7,11 @@ const AddImagePage = () => {
   const navigate = useNavigate();
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Errors from addImage() propagate up through ImageForm's own onSubmit
+  // try/catch (it already shows a form-level InlineAlert on failure), so
+  // this handler only needs to handle the success path.
   const handleSubmit = async (data) => {
-    addImage(data);
+    await addImage(data);
     setSuccessMessage('Decor added successfully.');
     setTimeout(() => navigate('/admin/gallery'), 900);
   };

@@ -1,20 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, X, AlertCircle } from 'lucide-react';
-import { categories } from '../../data/categories';
+import { getCategories } from '../../services/galleryService';
+import { uploadImage, deleteUploadedImage } from '../../services/uploadService';
 import InlineAlert from './InlineAlert';
 import styles from './ImageForm.module.scss';
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB — generous for a localStorage-backed prototype
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB — matches the local Worker's upload limit
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 /**
  * Shared Add/Edit image form.
@@ -31,7 +23,18 @@ const ImageForm = ({ mode = 'add', initialData = null, onSubmit, onCancel, submi
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [categoriesError, setCategoriesError] = useState('');
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCategories()
+      .then((data) => { if (!cancelled) setCategories(data); })
+      .catch(() => { if (!cancelled) setCategoriesError('Unable to load categories. Please refresh and try again.'); });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -44,15 +47,16 @@ const ImageForm = ({ mode = 'add', initialData = null, onSubmit, onCancel, submi
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setErrors((prev) => ({ ...prev, image: 'Image must be 2MB or smaller.' }));
+      setErrors((prev) => ({ ...prev, image: 'Image must be 5MB or smaller.' }));
       e.target.value = '';
       return;
     }
 
     setErrors((prev) => ({ ...prev, image: '' }));
     setSelectedFile(file);
-    // Instant preview — for the final saved value this gets converted to a
-    // data URL on submit so it survives a page reload (see readFileAsDataUrl).
+    // Instant local preview only (a blob: URL, browser-tab-local). On submit
+    // this file gets uploaded to the local Worker/R2 and previewUrl is
+    // replaced with the real, persistent URL it returns — see handleSubmit.
     setPreviewUrl(URL.createObjectURL(file));
   };
 
@@ -78,18 +82,38 @@ const ImageForm = ({ mode = 'add', initialData = null, onSubmit, onCancel, submi
     if (!validate()) return;
 
     setIsSubmitting(true);
+    // Tracks a freshly-uploaded R2 object so it can be cleaned up if the
+    // Supabase write below fails — see uploadService.deleteUploadedImage.
+    // This is a best-effort safety net, not a real transaction: if the
+    // cleanup call itself fails (e.g. the Worker goes down mid-request),
+    // the image is left orphaned in local R2 and only the error below is
+    // reported.
+    let uploadResult = null;
     try {
-      const imageUrl = selectedFile ? await readFileAsDataUrl(selectedFile) : previewUrl;
+      let imageUrl = previewUrl;
+      if (selectedFile) {
+        setStatusMessage('Uploading image…');
+        uploadResult = await uploadImage(selectedFile);
+        imageUrl = uploadResult.imageUrl;
+      }
+
+      setStatusMessage(mode === 'edit' ? 'Saving changes…' : 'Saving decor…');
       await onSubmit({
         categoryId,
         title: title.trim(),
         description: description.trim(),
         imageUrl,
       });
-    } catch {
-      setFormError('Something went wrong while saving. Please try again.');
+    } catch (err) {
+      if (uploadResult) {
+        await deleteUploadedImage(uploadResult.deleteUrl);
+        setFormError('The image uploaded, but saving the decor failed, so the image was removed. Please try again.');
+      } else {
+        setFormError(err?.message || 'Something went wrong while saving. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
+      setStatusMessage('');
     }
   };
 
@@ -105,17 +129,19 @@ const ImageForm = ({ mode = 'add', initialData = null, onSubmit, onCancel, submi
           id="image-category"
           className={`${styles.select} ${errors.category ? styles.inputError : ''}`}
           value={categoryId}
+          disabled={categories.length === 0}
           onChange={(e) => {
             setCategoryId(e.target.value);
             setErrors((prev) => ({ ...prev, category: '' }));
           }}
         >
-          <option value="">Select a category</option>
+          <option value="">{categories.length === 0 ? 'Loading categories…' : 'Select a category'}</option>
           {categories.map((cat) => (
             <option key={cat.id} value={cat.id}>{cat.name}</option>
           ))}
         </select>
         {errors.category && <span className={styles.errorText}><AlertCircle size={13} />{errors.category}</span>}
+        {categoriesError && <span className={styles.errorText}><AlertCircle size={13} />{categoriesError}</span>}
       </div>
 
       <div className={styles.field}>
@@ -164,7 +190,7 @@ const ImageForm = ({ mode = 'add', initialData = null, onSubmit, onCancel, submi
           <label htmlFor="image-file" className={`${styles.dropzone} ${errors.image ? styles.inputError : ''}`}>
             <UploadCloud size={26} />
             <span>Click to upload an image</span>
-            <span className={styles.dropzoneHint}>JPG, PNG or WEBP — up to 2MB</span>
+            <span className={styles.dropzoneHint}>JPG, PNG or WEBP — up to 5MB</span>
           </label>
         )}
         <input
@@ -188,7 +214,7 @@ const ImageForm = ({ mode = 'add', initialData = null, onSubmit, onCancel, submi
           Cancel
         </button>
         <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : (submitLabel || (mode === 'edit' ? 'Save Changes' : 'Add Decor'))}
+          {isSubmitting ? (statusMessage || 'Saving…') : (submitLabel || (mode === 'edit' ? 'Save Changes' : 'Add Decor'))}
         </button>
       </div>
     </form>

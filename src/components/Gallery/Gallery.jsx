@@ -1,17 +1,17 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { ArrowRight, MapPin, Eye, X, Calendar } from 'lucide-react';
+import { ArrowRight, MapPin, Eye, X, Calendar, Loader2 } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import { gsap, getLenis } from '../../lib/smoothScroll';
 import { lockScroll, unlockScroll } from '../../lib/scrollLock';
-import { getImages } from '../../services/galleryService';
-import { categories, getCategoryName } from '../../data/categories';
+import { getImages, getCategories } from '../../services/galleryService';
 import styles from './Gallery.module.scss';
-
-const CATEGORY_TABS = ['All', ...categories.map((c) => c.name)];
 
 const Gallery = ({ onOpenConsultation }) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeProject, setActiveProject] = useState(null);
+  const [images, setImages] = useState([]);
+  const [categoryNames, setCategoryNames] = useState([]);
+  const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
   const gridRef = useRef(null);
   // Only release the shared scroll lock if this modal is the one holding
   // it — mirrors ConsultationModal's guard so an unmount never clobbers a
@@ -39,13 +39,28 @@ const Gallery = ({ onOpenConsultation }) => {
     };
   }, [activeProject]);
 
+  const CATEGORY_TABS = useMemo(() => ['All', ...categoryNames], [categoryNames]);
+
   // Sourced from the shared gallery data layer (services/galleryService.js)
   // so admin-managed changes appear here without any code changes.
-  const [images] = useState(() => getImages());
+  useEffect(() => {
+    let cancelled = false;
+    setStatus('loading');
+    Promise.all([getImages(), getCategories()])
+      .then(([items, cats]) => {
+        if (cancelled) return;
+        setImages(items);
+        setCategoryNames(cats.map((c) => c.name));
+        setStatus('ready');
+      })
+      .catch(() => { if (!cancelled) setStatus('error'); });
+    return () => { cancelled = true; };
+  }, []);
+
   const projectsData = useMemo(() => images.map((img) => ({
     id: img.id,
     title: img.title,
-    category: getCategoryName(img.categoryId),
+    category: img.categoryName,
     location: img.location,
     image: img.imageUrl,
     description: img.description,
@@ -82,79 +97,97 @@ const Gallery = ({ onOpenConsultation }) => {
   return (
     <section id="projects" className={`section-padding ${styles.gallerySection}`}>
       <div className="container">
-        {/* Category Filter Tabs */}
-        <div className={styles.filterTabsWrapper} role="tablist">
-          {CATEGORY_TABS.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              role="tab"
-              aria-selected={activeCategory === cat}
-              className={`${styles.filterTab} ${activeCategory === cat ? styles.activeTab : ''}`}
-              onClick={() => setActiveCategory(cat)}
-            >
-              <span>{cat}</span>
-              {activeCategory === cat && <span className={styles.activePill} />}
-            </button>
-          ))}
-        </div>
+        {status === 'loading' ? (
+          <div className={styles.stateMessage}>
+            <Loader2 size={28} className={styles.stateSpinner} />
+            <p>Loading decor…</p>
+          </div>
+        ) : status === 'error' ? (
+          <div className={styles.stateMessage}>
+            <p>Unable to load decor. Please try again.</p>
+          </div>
+        ) : (
+          <>
+            {/* Category Filter Tabs */}
+            <div className={styles.filterTabsWrapper} role="tablist">
+              {CATEGORY_TABS.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeCategory === cat}
+                  className={`${styles.filterTab} ${activeCategory === cat ? styles.activeTab : ''}`}
+                  onClick={() => setActiveCategory(cat)}
+                >
+                  <span>{cat}</span>
+                  {activeCategory === cat && <span className={styles.activePill} />}
+                </button>
+              ))}
+            </div>
 
-        {/* Asymmetric Gallery Grid */}
-        <div ref={gridRef} className={styles.galleryGrid}>
-          {filteredProjects.map((project, index) => {
-            const isFeatured = index === 0 || index === 3;
-            return (
-              <div 
-                key={project.id} 
-                className={`${styles.galleryItem} ${isFeatured ? styles.featuredItem : ''}`}
-                onClick={() => handleOpenProject(project)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleOpenProject(project);
-                  }
-                }}
-              >
-                <div className={styles.imageContainer}>
-                  <img
-                    src={project.image}
-                    alt={project.title}
-                    className={styles.projectImage}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <div className={styles.overlayGradient} />
-                  
-                  {/* Category Pill Tag */}
-                  <span className={styles.categoryBadge}>{project.category}</span>
-                </div>
-
-                {/* Information Card Overlay */}
-                <div className={styles.projectInfo}>
-                  {project.location && (
-                    <div className={styles.locationTag}>
-                      <MapPin size={12} className={styles.pinIcon} />
-                      <span>{project.location}</span>
-                    </div>
-                  )}
-
-                  <h3 className={styles.projectTitle}>{project.title}</h3>
-                  <p className={styles.projectDesc}>{project.description}</p>
-
-                  <div className={styles.viewAction}>
-                    <span className={styles.viewActionText}>VIEW PROJECT</span>
-                    <ArrowRight size={14} className={styles.actionArrow} />
-                  </div>
-                </div>
-
-                {/* Gold Frame Highlight */}
-                <div className={styles.borderFrame} />
+            {filteredProjects.length === 0 ? (
+              <div className={styles.stateMessage}>
+                <p>No decor available.</p>
               </div>
-            );
-          })}
-        </div>
+            ) : (
+              <div ref={gridRef} className={styles.galleryGrid}>
+                {filteredProjects.map((project, index) => {
+                  const isFeatured = index === 0 || index === 3;
+                  return (
+                    <div
+                      key={project.id}
+                      className={`${styles.galleryItem} ${isFeatured ? styles.featuredItem : ''}`}
+                      onClick={() => handleOpenProject(project)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleOpenProject(project);
+                        }
+                      }}
+                    >
+                      <div className={styles.imageContainer}>
+                        <img
+                          src={project.image}
+                          alt={project.title}
+                          className={styles.projectImage}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <div className={styles.overlayGradient} />
+
+                        {/* Category Pill Tag */}
+                        <span className={styles.categoryBadge}>{project.category}</span>
+                      </div>
+
+                      {/* Information Card Overlay */}
+                      <div className={styles.projectInfo}>
+                        {project.location && (
+                          <div className={styles.locationTag}>
+                            <MapPin size={12} className={styles.pinIcon} />
+                            <span>{project.location}</span>
+                          </div>
+                        )}
+
+                        <h3 className={styles.projectTitle}>{project.title}</h3>
+                        <p className={styles.projectDesc}>{project.description}</p>
+
+                        <div className={styles.viewAction}>
+                          <span className={styles.viewActionText}>VIEW PROJECT</span>
+                          <ArrowRight size={14} className={styles.actionArrow} />
+                        </div>
+                      </div>
+
+                      {/* Gold Frame Highlight */}
+                      <div className={styles.borderFrame} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Project Lightbox Modal */}

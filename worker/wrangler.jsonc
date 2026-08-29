@@ -1,0 +1,31 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  // Worker name as it will appear in the Cloudflare dashboard once deployed.
+  // Not used at all for local dev — only relevant for a future `wrangler deploy`.
+  "name": "homedecor-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-08-01",
+
+  // Pinned so the React app's VITE_WORKER_URL always points at a known,
+  // stable address — without this, Wrangler silently picks the next free
+  // port if 8787 is busy, which would break the local upload integration.
+  "dev": {
+    "port": 8787
+  },
+
+  // --------------------------------------------------------------------
+  // R2 binding — LOCAL ONLY for this step.
+  // --------------------------------------------------------------------
+  // No `remote: true` here (and none should be added until a later, explicit
+  // step). Without it, `wrangler dev` always simulates this bucket locally
+  // via Miniflare — data is stored under worker/.wrangler/state on this
+  // machine and never touches a real Cloudflare account. `bucket_name` is
+  // just a local label; it does not need to exist as a real R2 bucket for
+  // local development to work.
+  "r2_buckets": [
+    {
+      "binding": "DECOR_IMAGES",
+      "bucket_name": "homedecor-images-dev"
+    }
+  ]
+}
