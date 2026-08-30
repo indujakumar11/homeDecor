@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, X, AlertCircle } from 'lucide-react';
 import { getCategories } from '../../services/galleryService';
-import { uploadImage, deleteUploadedImage } from '../../services/uploadService';
+import { uploadImage, deleteUploadedImage, deleteImageByUrl } from '../../services/uploadService';
 import InlineAlert from './InlineAlert';
 import styles from './ImageForm.module.scss';
 
@@ -104,6 +104,19 @@ const ImageForm = ({ mode = 'add', initialData = null, onSubmit, onCancel, submi
         description: description.trim(),
         imageUrl,
       });
+
+      // Supabase now points at the new image — only NOW is it safe to
+      // remove the old one. This ordering matters: if the save above had
+      // failed, we must not have touched the old image at all (see the
+      // catch block, which instead cleans up the NEW upload). This is
+      // best-effort and non-blocking of the already-successful save: R2 and
+      // Supabase are separate systems with no shared transaction, so a
+      // failure here does not get rolled back or re-reported as an error —
+      // it's logged (see uploadService), and the edit the admin asked for
+      // has already genuinely succeeded.
+      if (mode === 'edit' && selectedFile && initialData?.imageUrl) {
+        await deleteImageByUrl(initialData.imageUrl);
+      }
     } catch (err) {
       if (uploadResult) {
         await deleteUploadedImage(uploadResult.deleteUrl);

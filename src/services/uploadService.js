@@ -59,12 +59,53 @@ export async function uploadImage(file) {
  * Never throws: if this also fails, we're already reporting the original
  * error to the user, and there is no stronger guarantee to offer here (see
  * README notes on this not being a transactional operation).
+ *
+ * Returns true if the delete request came back ok, false otherwise — callers
+ * that want to log/report the outcome can check this; callers that just want
+ * "try, and move on regardless" can ignore the return value entirely.
  */
 export async function deleteUploadedImage(deleteUrl) {
   try {
-    await fetch(deleteUrl, { method: 'DELETE' });
+    const res = await fetch(deleteUrl, { method: 'DELETE' });
+    if (!res.ok) {
+      // eslint-disable-next-line no-console
+      console.error(`[uploadService] R2 cleanup request for ${deleteUrl} returned ${res.status}.`);
+      return false;
+    }
+    return true;
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[uploadService] Best-effort cleanup of orphaned R2 object failed:', err);
+    return false;
   }
+}
+
+/**
+ * Extracts the R2 object key from an image_url this app itself produced
+ * (always `${WORKER_URL}/api/images/<key>` — see uploadImage above).
+ *
+ * Returns null for anything that doesn't match that exact prefix, which is
+ * the correct, safe outcome for e.g. the seed data's plain static asset
+ * paths (`assets/services/murals.webp`) — those were never stored in R2, so
+ * there is nothing to clean up and no key to guess at. This is deliberately
+ * a strict prefix check against a URL shape this codebase fully controls,
+ * not a heuristic over an arbitrary string.
+ */
+export function getWorkerImageKey(imageUrl) {
+  const prefix = `${WORKER_URL}/api/images/`;
+  if (typeof imageUrl !== 'string' || !imageUrl.startsWith(prefix)) return null;
+  const key = imageUrl.slice(prefix.length);
+  return key ? decodeURIComponent(key) : null;
+}
+
+/**
+ * Best-effort delete of a Worker-hosted image, given its stored image_url
+ * rather than a fresh upload's key. Returns false (without throwing) for a
+ * non-R2-managed URL, or if the delete request itself fails/errors — see
+ * deleteUploadedImage above for the same "never throws" reasoning.
+ */
+export async function deleteImageByUrl(imageUrl) {
+  const key = getWorkerImageKey(imageUrl);
+  if (!key) return false;
+  return deleteUploadedImage(`${WORKER_URL}/api/images/${key}`);
 }

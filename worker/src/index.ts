@@ -2,17 +2,20 @@ export interface Env {
 	DECOR_IMAGES: R2Bucket;
 }
 
-// Step 2C (local dev only): the Admin Portal now calls these routes for
-// real, from a different origin (the Vite dev server) — so unlike the
-// Step 2B test-only routes, every response needs CORS headers, and the
-// "test-" prefix is dropped now that this is the actual upload path.
+// Step 2C/2D (local dev only): the Admin Portal calls these routes for
+// real, from a different origin (the Vite dev server) — so every response
+// needs CORS headers.
 //
 //   POST   /api/upload        - upload an image, returns { key, retrieveUrl }
 //   GET    /api/images/:key   - retrieve a stored image
-//   DELETE /api/images/:key   - remove a stored image (used for orphan
+//   DELETE /api/images/:key   - remove a stored image. Used for: (a) orphan
 //                               cleanup when a Supabase write fails after a
-//                               successful upload — not wired to the
-//                               Admin Portal's "Delete Decor" button yet)
+//                               successful upload, (b) removing the old
+//                               image after a successful Edit Decor image
+//                               replacement, (c) removing a decor item's
+//                               image on Delete Decor. See
+//                               src/services/uploadService.js for the
+//                               ordering/failure-handling rules around each.
 
 const ALLOWED_TYPES: Record<string, string> = {
 	'image/jpeg': 'jpg',
@@ -22,6 +25,19 @@ const ALLOWED_TYPES: Record<string, string> = {
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB — development-only limit
 const UPLOAD_PREFIX = 'uploads/';
+
+// Matches exactly what handleUpload generates: uploads/<uuid>.<ext>. Applied
+// to every key-bearing request (GET/DELETE) so malformed, path-traversal-
+// looking, or otherwise unexpected keys are rejected with a clean 400
+// instead of being passed through to R2. R2 keys are opaque strings (not
+// filesystem paths), so there's no traversal vulnerability in R2 itself —
+// this is defense in depth, and it also guarantees one decor item's key can
+// never collide with or accidentally reference another's.
+const VALID_KEY_PATTERN = /^uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/i;
+
+function isValidKey(key: string): boolean {
+	return VALID_KEY_PATTERN.test(key);
+}
 
 const CORS_HEADERS: Record<string, string> = {
 	// Local dev only, no cookies/credentials involved — a wildcard origin is
@@ -129,6 +145,9 @@ async function handleGetImage(request: Request, env: Env): Promise<Response> {
 	if (!key) {
 		return json({ error: 'No object key provided.' }, 400);
 	}
+	if (!isValidKey(key)) {
+		return json({ error: 'Invalid object key.' }, 400);
+	}
 
 	let object: R2ObjectBody | null;
 	try {
@@ -157,6 +176,9 @@ async function handleDeleteImage(request: Request, env: Env): Promise<Response> 
 	const key = extractKey(request, '/api/images/');
 	if (!key) {
 		return json({ error: 'No object key provided.' }, 400);
+	}
+	if (!isValidKey(key)) {
+		return json({ error: 'Invalid object key.' }, 400);
 	}
 
 	try {

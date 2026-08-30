@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ImagePlus, ImageOff, Loader2 } from 'lucide-react';
 import { getImages, getCategories, deleteImage } from '../../services/galleryService';
+import { deleteImageByUrl } from '../../services/uploadService';
 import AdminLayout from '../layouts/AdminLayout';
 import ImageCard from '../components/ImageCard';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -57,17 +58,36 @@ const GalleryManagementPage = () => {
     });
   }, [images, activeCategory, searchQuery]);
 
+  // Deliberately deletes the Supabase record BEFORE the R2 image, not after
+  // (R2 and Supabase are separate systems with no shared transaction, so
+  // *some* ordering has to be chosen, and each has a different failure
+  // mode):
+  //   - Supabase-first: if the DB delete fails, nothing has changed — the
+  //     record and image both still exist, consistently. If the DB delete
+  //     succeeds but the R2 delete then fails, the record is correctly gone
+  //     from the admin/public UI (what the admin asked for) and the only
+  //     consequence is a harmless orphaned file in local R2 storage.
+  //   - R2-first (the alternative): if the R2 delete succeeds but the DB
+  //     delete then fails, the record would still be *visible* in the UI
+  //     but pointing at a now-404 image — a confusing broken-image state
+  //     for an item the admin was told still exists.
+  // Supabase-first has the strictly safer failure mode, so that's what this
+  // does. The R2 cleanup below is intentionally best-effort and never
+  // blocks or reverses the (already-succeeded) database deletion.
   const handleConfirmDelete = async () => {
     if (!deletingImage) return;
     const target = deletingImage;
     setDeletingImage(null);
     try {
       await deleteImage(target.id);
-      await refresh();
-      setSuccessMessage('Image deleted successfully.');
     } catch {
       setActionError('Failed to delete this image. Please try again.');
+      return;
     }
+
+    await deleteImageByUrl(target.imageUrl);
+    await refresh();
+    setSuccessMessage('Image deleted successfully.');
   };
 
   return (
