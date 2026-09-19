@@ -70,7 +70,9 @@
     "production": {
       "name": "homedecor-worker-production",
       "vars": {
-        "ENVIRONMENT": "production"
+        "ENVIRONMENT": "production",
+        "SUPABASE_URL": "https://kmuomlwrolehqxqvacwq.supabase.co",
+        "SUPABASE_ANON_KEY": "sb_publishable_-_aF_HnTBr6Ag8UNwZ9jjA_3B7mqt0u"
       },
       "r2_buckets": [
         {
