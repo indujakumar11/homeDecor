@@ -162,7 +162,24 @@ site_url = "http://127.0.0.1:3000"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = ["https://127.0.0.1:3000"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
-jwt_expiry = 3600
+# Step 3D.1: reduced from the 3600s default to 900s (15 minutes). This is
+# the single most effective lever for bounding how long an already-minted
+# app_metadata.otp_verified=true token can remain usable after
+# public.otp_authorizations is revoked/expires — JWTs are stateless and
+# cannot be invalidated early, so shortening their own lifetime is the only
+# way to shrink that worst-case window (see the Step 3D.1 report's "JWT
+# lifetime" section for the full analysis). Verified safe before changing:
+# src/lib/supabase.js creates the Supabase client with no custom auth
+# options, so it relies entirely on supabase-js's default automatic
+# background token refresh, which adapts to whatever jwt_expiry the server
+# reports rather than assuming 3600s anywhere — reducing this value does
+# not require any React code change and was confirmed working (session
+# stayed valid across refresh, logout, and re-login) during Step 3D.1
+# testing. This applies to ALL Supabase sessions project-wide (there is
+# only ever the Admin Portal's own session — the public site never
+# authenticates), so there is no separate "public user" session this could
+# unexpectedly break.
+jwt_expiry = 900
 # JWT issuer URL. If not set, defaults to auth.external_url.
 # jwt_issuer = ""
 # Path to JWT signing key. DO NOT commit your signing keys file to git.
@@ -281,9 +298,12 @@ max_frequency = "5s"
 # uri = "pg-functions://postgres/auth/before-user-created-hook"
 
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
-# [auth.hook.custom_access_token]
-# enabled = true
-# uri = "pg-functions://<database>/<schema>/<hook_name>"
+# Step 3D: stamps app_metadata.otp_verified into every minted/refreshed
+# access token — see supabase/migrations/003_otp_verified_rls.sql for the
+# function definition and the RLS policies that depend on this claim.
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token_hook"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]

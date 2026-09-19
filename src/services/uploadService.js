@@ -12,7 +12,30 @@
  * ============================================================================
  */
 
+import { supabase } from '../lib/supabase';
+import { getOtpProof } from './authService';
+
 const WORKER_URL = import.meta.env.VITE_WORKER_URL || 'http://localhost:8787';
+
+/**
+ * Headers proving to the Worker who is asking and that they completed OTP
+ * (Step 3C.1) — required on every privileged route (upload/delete). Only
+ * ever a convenience for the browser to attach; the Worker independently
+ * re-validates both the Supabase token and the OTP proof itself and does
+ * not trust that either header is present or well-formed.
+ */
+async function privilegedHeaders() {
+  const { data } = await supabase.auth.getSession();
+  const headers = {};
+  if (data.session?.access_token) {
+    headers.authorization = `Bearer ${data.session.access_token}`;
+  }
+  const otpProof = getOtpProof();
+  if (otpProof) {
+    headers['x-otp-proof'] = otpProof;
+  }
+  return headers;
+}
 
 /**
  * Uploads a File to the local Worker, which stores it in local R2.
@@ -27,6 +50,7 @@ export async function uploadImage(file) {
   try {
     response = await fetch(`${WORKER_URL}/api/upload`, {
       method: 'POST',
+      headers: await privilegedHeaders(),
       body: formData,
     });
   } catch {
@@ -66,7 +90,7 @@ export async function uploadImage(file) {
  */
 export async function deleteUploadedImage(deleteUrl) {
   try {
-    const res = await fetch(deleteUrl, { method: 'DELETE' });
+    const res = await fetch(deleteUrl, { method: 'DELETE', headers: await privilegedHeaders() });
     if (!res.ok) {
       // eslint-disable-next-line no-console
       console.error(`[uploadService] R2 cleanup request for ${deleteUrl} returned ${res.status}.`);

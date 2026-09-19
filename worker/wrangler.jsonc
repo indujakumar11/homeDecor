@@ -27,5 +27,57 @@
       "binding": "DECOR_IMAGES",
       "bucket_name": "homedecor-images-dev"
     }
-  ]
+  ],
+
+  // --------------------------------------------------------------------
+  // Production environment — Step 3F: configuration only, never deployed
+  // from this repo state. `wrangler deploy --env production` is NOT run as
+  // part of this step; this block exists so a future, deliberate deploy has
+  // something correct to target instead of reusing the dev config by
+  // accident. Named Wrangler environments do NOT inherit `vars`/bindings
+  // from the top level, so everything production needs is restated here
+  // explicitly rather than assumed.
+  //
+  // What is intentionally NOT here, and why:
+  //   - No OTP_PROVIDER var. Leaving it unset means getOtpProvider() (see
+  //     worker/src/otpProvider.ts) throws and every OTP route fails closed
+  //     (503) by default, even if this config were deployed as-is — a real
+  //     deploy must explicitly opt into OTP_PROVIDER=twilio (a plain var,
+  //     added here once Twilio is actually ready) rather than inherit a
+  //     working default.
+  //   - No SUPABASE_URL / SUPABASE_ANON_KEY vars. These are not secrets
+  //     (the anon key is already public), but no real hosted production
+  //     Supabase project exists yet — inventing a placeholder URL here
+  //     would be indistinguishable from a real one at a glance. Add them as
+  //     plain `vars` in this block once a real production project exists.
+  //   - No TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_VERIFY_SERVICE_SID
+  //     / SUPABASE_SERVICE_ROLE_KEY / OTP_PROOF_SECRET anywhere in this
+  //     file. These are all secrets and must be set with
+  //     `wrangler secret put <NAME> --env production` at actual deploy
+  //     time, never written here or committed to git.
+  //   - Explicit `name` below: Wrangler named environments deploy to a
+  //     SEPARATE Worker from the top-level one unless told otherwise — when
+  //     a named environment omits `name`, Wrangler defaults it to
+  //     `<top-level name>-<environment>` (here that default would already
+  //     be `homedecor-worker-production`). The `name` is stated explicitly
+  //     rather than left to that default so this file is unambiguous about
+  //     which Worker `--env production` targets — it is NOT the same
+  //     Worker as the top-level `homedecor-worker` used for local dev.
+  //   - `homedecor-images-prod` is a real bucket that already exists in the
+  //     Cloudflare account (created outside this repo) — this binding just
+  //     is not used until an actual `wrangler deploy --env production`.
+  "env": {
+    "production": {
+      "name": "homedecor-worker-production",
+      "vars": {
+        "ENVIRONMENT": "production"
+      },
+      "r2_buckets": [
+        {
+          "binding": "DECOR_IMAGES",
+          "bucket_name": "homedecor-images-prod"
+        }
+      ]
+    }
+  }
 }

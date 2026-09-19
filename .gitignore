@@ -33,3 +33,10 @@ worker/.wrangler
 *.njsproj
 *.sln
 *.sw?
+
+# Local backups and database dumps — never commit
+.env.local-backup
+local-data.sql
+
+# Claude Code local/project state
+.claude/

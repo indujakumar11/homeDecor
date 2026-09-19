@@ -1,0 +1,28 @@
+@use '../styles/admin-variables' as *;
+
+.checkingScreen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: var(--admin-bg);
+  color: var(--admin-text-muted);
+  font-size: 0.86rem;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--admin-border);
+  border-top-color: var(--admin-gold);
+  border-radius: 50%;
+  animation: protectedRouteSpin 0.8s linear infinite;
+}
+
+@keyframes protectedRouteSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

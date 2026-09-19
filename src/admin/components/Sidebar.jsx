@@ -12,8 +12,8 @@ const NAV_ITEMS = [
 const Sidebar = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/admin/login', { replace: true });
   };
 

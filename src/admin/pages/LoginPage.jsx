@@ -1,35 +1,30 @@
 import React, { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
-import { login, isAuthenticated } from '../../services/authService';
+import { login } from '../../services/authService';
 import InlineAlert from '../components/InlineAlert';
 import styles from './AuthPages.module.scss';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (isAuthenticated()) {
-    return <Navigate to="/admin/gallery" replace />;
-  }
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
 
-    // Mock login — see services/authService.js for the dev-only note.
-    const result = login(username, password);
+    const result = await login(email, password);
 
     if (result.success) {
       navigate('/admin/otp');
     } else {
       setError(result.message);
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   return (
@@ -47,15 +42,15 @@ const LoginPage = () => {
 
         <form onSubmit={handleSubmit} className={styles.form} noValidate>
           <div className={styles.field}>
-            <label htmlFor="username" className={styles.label}>Username</label>
+            <label htmlFor="email" className={styles.label}>Email</label>
             <input
-              id="username"
-              type="text"
+              id="email"
+              type="email"
               className={styles.input}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
-              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
               autoFocus
             />
           </div>
@@ -75,11 +70,9 @@ const LoginPage = () => {
 
           <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
             <LogIn size={16} />
-            <span>Continue</span>
+            <span>{isSubmitting ? 'Signing in…' : 'Continue'}</span>
           </button>
         </form>
-
-        <p className={styles.hint}>Demo credentials: <strong>admin</strong> / <strong>Admin@123</strong></p>
       </div>
     </div>
   );
