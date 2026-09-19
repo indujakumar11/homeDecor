@@ -122,7 +122,7 @@ function isValidKey(key: string): boolean {
 // tightened to an explicit allowlist of the exact local dev origins the
 // Vite dev server actually runs on. Add a new entry here (not a wildcard)
 // if you serve the Admin Portal from a different local port/host.
-const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://homedecor.homedecor-blackshade.workers.dev'];
 
 function corsHeadersFor(request: Request): Record<string, string> {
 	const requestOrigin = request.headers.get('origin') || '';
