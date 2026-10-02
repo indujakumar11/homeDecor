@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import styles from './CategoryCarousel.module.scss';
 
 const CAROUSEL_CATEGORIES = [
-  { id: 'murals', title: 'Custom Murals', image: 'assets/services/murals.webp' },
-  { id: 'frp-sculptures', title: 'FRP Sculptures', image: 'assets/services/frp-sculptures.webp' },
-  { id: 'marble-sculptures', title: 'Marble Sculptures', image: 'assets/services/marble-sculptures.webp' },
-  { id: 'parametric', title: '3D Parametric', image: 'assets/services/parametric.webp' },
-  { id: 'interior-decor', title: 'Interior Décor', image: 'assets/services/interior-decor.webp' },
+  { id: 'murals', title: 'Custom Murals', image: 'assets/categories/murals.jpg' },
+  { id: 'frp-sculptures', title: 'FRP Sculptures', image: 'assets/categories/frp-sculptures.jpg' },
+  { id: 'marble-sculptures', title: 'Marble Sculptures', image: 'assets/categories/marble-sculptures.jpg' },
+  { id: 'parametric', title: '3D Parametric', image: 'assets/categories/parametric.jpg' },
+  { id: 'interior-decor', title: 'Interior Décor', image: 'assets/categories/interior-decor.jpg' },
   { id: 'signage', title: 'Signage & Pylons', image: 'assets/services/signage.webp' },
   { id: 'corporate', title: 'Corporate Interiors', image: 'assets/services/corporate.webp' },
   { id: 'supermarket', title: 'Retail & Warehouse', image: 'assets/services/supermarket.webp' },
