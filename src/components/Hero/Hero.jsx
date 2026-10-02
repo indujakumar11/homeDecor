@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowDown, Eye, Calendar } from 'lucide-react';
+import { ArrowDown, Eye } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import { gsap, getLenis } from '../../lib/smoothScroll';
 import { onPreloaderComplete } from '../../lib/preloaderSignal';
 import styles from './Hero.module.scss';
 
-const Hero = ({ onOpenConsultation }) => {
+const Hero = () => {
   const navigate = useNavigate();
   const sectionRef = useRef(null);
   // Entrance timeline waits for the Preloader (see lib/preloaderSignal.js)
@@ -123,15 +123,6 @@ const Hero = ({ onOpenConsultation }) => {
 
           {/* CTA Group */}
           <div ref={ctaRef} className={styles.ctaGroup}>
-            <button
-              type="button"
-              className={`btn btn-primary-gold ${styles.primaryCta}`}
-              onClick={onOpenConsultation}
-            >
-              <Calendar size={16} />
-              <span>Book a Consultation</span>
-            </button>
-
             <button
               type="button"
               className={`btn btn-outline-gold ${styles.secondaryCta}`}

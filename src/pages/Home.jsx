@@ -15,7 +15,7 @@ const Home = ({ onOpenConsultation }) => {
         <CategoryCarousel />
       </div>
 
-      <Hero onOpenConsultation={onOpenConsultation} />
+      <Hero />
       <Marquee />
       <TrustStrip />
       <Showcase onOpenConsultation={onOpenConsultation} />
