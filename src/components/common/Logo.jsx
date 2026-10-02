@@ -1,28 +1,36 @@
 import React from 'react';
-import LogoMark from './LogoMark';
+import { Link, useLocation } from 'react-router-dom';
+import { getLenis } from '../../lib/smoothScroll';
 import styles from './Logo.module.scss';
 
-const Logo = ({ size = 'medium', showTagline = false, className = '' }) => {
-  return (
-    <a href="#home" className={`${styles.brandLogo} ${styles[size]} ${className}`}>
-      {/* Geometric Hexagonal BS Monogram */}
-      <div className={styles.symbolWrapper}>
-        <LogoMark className={styles.logoSvg} />
-      </div>
+const logoCompact = 'assets/logo/black-shades-logo-compact.webp';
+const logoFull = 'assets/logo/black-shades-logo-full.webp';
 
-      {/* Brand Typography */}
-      <div className={styles.textWrapper}>
-        <span className={styles.brandTitle}>BLACK SHADES</span>
-        <div className={styles.subtitleRow}>
-          <span className={styles.dash}></span>
-          <span className={styles.brandSub}>HOME DECORS</span>
-          <span className={styles.dash}></span>
-        </div>
-        {showTagline && (
-          <span className={styles.brandTagline}>SPACES THAT INSPIRE</span>
-        )}
-      </div>
-    </a>
+const Logo = ({ size = 'medium', showTagline = false, className = '' }) => {
+  const src = showTagline ? logoFull : logoCompact;
+  const { pathname } = useLocation();
+
+  // Already on the home page: a route change to "/" wouldn't re-fire
+  // ScrollToTop (pathname is unchanged), so scroll to top ourselves.
+  const handleClick = (e) => {
+    if (pathname === '/') {
+      e.preventDefault();
+      getLenis()?.scrollTo(0, { duration: 1.1 });
+    }
+  };
+
+  return (
+    <Link
+      to="/"
+      onClick={handleClick}
+      className={`${styles.brandLogo} ${styles[size]} ${className}`}
+    >
+      <img
+        src={src}
+        alt="Black Shades Home Decors"
+        className={styles.logoImage}
+      />
+    </Link>
   );
 };
 

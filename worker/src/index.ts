@@ -39,6 +39,17 @@ export interface Env {
 	TWILIO_ACCOUNT_SID?: string;
 	TWILIO_AUTH_TOKEN?: string;
 	TWILIO_VERIFY_SERVICE_SID?: string;
+	// TEMPORARY production escape hatch — must be exactly "true" to take
+	// effect; unset/anything else is the safe default (OTP stays enforced).
+	// When "true", handleOtpStart/handleOtpVerify skip the phone lookup and
+	// OtpProvider (Twilio) entirely, after the identity + enabled-admin
+	// checks still run — so this removes ONLY the second factor, not
+	// authentication itself. Added because production Twilio Verify is
+	// currently broken, blocking all admin logins. Set via
+	// `wrangler secret put ADMIN_OTP_DISABLED --env production` (never commit
+	// a real "true" value to this file's vars). Remove this flag and its two
+	// call sites once Twilio is fixed — grep ADMIN_OTP_DISABLED.
+	ADMIN_OTP_DISABLED?: string;
 }
 
 // Step 2C/2D (local dev only): the Admin Portal calls these routes for
@@ -453,6 +464,11 @@ async function handleOtpStart(request: Request, env: Env): Promise<Response> {
 		);
 	}
 
+	if (env.ADMIN_OTP_DISABLED === 'true') {
+		console.warn(`[handleOtpStart] ADMIN_OTP_DISABLED=true — skipping OTP challenge for admin ${user.id}.`);
+		return json({ success: true }, 200, request);
+	}
+
 	const phone = await getAdminPhone(user.id, env);
 	if (!phone) {
 		// Should not happen once every admin_users row has a phone (see
@@ -526,63 +542,67 @@ async function handleOtpVerify(request: Request, env: Env): Promise<Response> {
 		);
 	}
 
-	const phone = await getAdminPhone(user.id, env);
-	if (!phone) {
-		console.error(`[handleOtpVerify] admin ${user.id} has no phone number on file.`);
-		return json(
-			{ success: false, error: 'not_configured', message: 'Unable to verify code. Please try again.' },
-			503,
-			request
-		);
-	}
+	if (env.ADMIN_OTP_DISABLED !== 'true') {
+		const phone = await getAdminPhone(user.id, env);
+		if (!phone) {
+			console.error(`[handleOtpVerify] admin ${user.id} has no phone number on file.`);
+			return json(
+				{ success: false, error: 'not_configured', message: 'Unable to verify code. Please try again.' },
+				503,
+				request
+			);
+		}
 
-	if (isProductionUnsafePhone(phone, env)) {
-		console.error(
-			`[handleOtpVerify] admin ${user.id} still has the development placeholder phone number on file in production — refusing to verify.`
-		);
-		return json(
-			{ success: false, error: 'not_configured', message: 'Unable to verify code. Please try again.' },
-			503,
-			request
-		);
-	}
+		if (isProductionUnsafePhone(phone, env)) {
+			console.error(
+				`[handleOtpVerify] admin ${user.id} still has the development placeholder phone number on file in production — refusing to verify.`
+			);
+			return json(
+				{ success: false, error: 'not_configured', message: 'Unable to verify code. Please try again.' },
+				503,
+				request
+			);
+		}
 
-	let body: { otp?: unknown };
-	try {
-		body = await request.json();
-	} catch {
-		return json({ success: false, error: 'invalid_request', message: 'Invalid request.' }, 400, request);
-	}
-	const submittedOtp = typeof body.otp === 'string' ? body.otp.trim() : '';
-	if (!submittedOtp) {
-		return json({ success: false, error: 'invalid_otp', message: 'Invalid OTP.' }, 400, request);
-	}
+		let body: { otp?: unknown };
+		try {
+			body = await request.json();
+		} catch {
+			return json({ success: false, error: 'invalid_request', message: 'Invalid request.' }, 400, request);
+		}
+		const submittedOtp = typeof body.otp === 'string' ? body.otp.trim() : '';
+		if (!submittedOtp) {
+			return json({ success: false, error: 'invalid_otp', message: 'Invalid OTP.' }, 400, request);
+		}
 
-	let provider: OtpProvider;
-	try {
-		provider = getOtpProvider(env);
-	} catch (err) {
-		console.error('[handleOtpVerify] OTP provider unavailable:', err instanceof Error ? err.message : String(err));
-		return json(
-			{ success: false, error: 'provider_unavailable', message: 'Verification service unavailable. Please try again.' },
-			503,
-			request
-		);
-	}
+		let provider: OtpProvider;
+		try {
+			provider = getOtpProvider(env);
+		} catch (err) {
+			console.error('[handleOtpVerify] OTP provider unavailable:', err instanceof Error ? err.message : String(err));
+			return json(
+				{ success: false, error: 'provider_unavailable', message: 'Verification service unavailable. Please try again.' },
+				503,
+				request
+			);
+		}
 
-	const result = await provider.checkVerification(phone, submittedOtp);
-	if (!result.success) {
-		// Fail closed: on ANY provider failure — wrong code, expired, too
-		// many attempts, or a provider/network error — nothing further
-		// happens. No otp_authorizations write, no proof, no
-		// otp_verified=true. One generic message regardless of the
-		// underlying reason (the provider's specific `error` is logged
-		// server-side only, not surfaced) — this is deliberately less
-		// granular than the DEV OTP routes' error codes, since real Twilio
-		// Verify cannot reliably distinguish "wrong code" from "expired"
-		// either, and a uniform response leaks less to a client attempting
-		// to enumerate OTP state.
-		return json({ success: false, error: 'invalid_otp', message: 'Invalid or expired OTP. Please try again.' }, 400, request);
+		const result = await provider.checkVerification(phone, submittedOtp);
+		if (!result.success) {
+			// Fail closed: on ANY provider failure — wrong code, expired, too
+			// many attempts, or a provider/network error — nothing further
+			// happens. No otp_authorizations write, no proof, no
+			// otp_verified=true. One generic message regardless of the
+			// underlying reason (the provider's specific `error` is logged
+			// server-side only, not surfaced) — this is deliberately less
+			// granular than the DEV OTP routes' error codes, since real Twilio
+			// Verify cannot reliably distinguish "wrong code" from "expired"
+			// either, and a uniform response leaks less to a client attempting
+			// to enumerate OTP state.
+			return json({ success: false, error: 'invalid_otp', message: 'Invalid or expired OTP. Please try again.' }, 400, request);
+		}
+	} else {
+		console.warn(`[handleOtpVerify] ADMIN_OTP_DISABLED=true — skipping OTP check for admin ${user.id}.`);
 	}
 
 	const { token, expiresAt } = await signOtpProof(user.id, env.OTP_PROOF_SECRET);

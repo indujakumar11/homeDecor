@@ -131,59 +131,43 @@ const Gallery = ({ onOpenConsultation }) => {
               </div>
             ) : (
               <div ref={gridRef} className={styles.galleryGrid}>
-                {filteredProjects.map((project, index) => {
-                  const isFeatured = index === 0 || index === 3;
-                  return (
-                    <div
-                      key={project.id}
-                      className={`${styles.galleryItem} ${isFeatured ? styles.featuredItem : ''}`}
-                      onClick={() => handleOpenProject(project)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleOpenProject(project);
-                        }
-                      }}
-                    >
-                      <div className={styles.imageContainer}>
-                        <img
-                          src={project.image}
-                          alt={project.title}
-                          className={styles.projectImage}
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        <div className={styles.overlayGradient} />
+                {filteredProjects.map((project) => (
+                  <div
+                    key={project.id}
+                    className={styles.galleryItem}
+                    onClick={() => handleOpenProject(project)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleOpenProject(project);
+                      }
+                    }}
+                  >
+                    <div className={styles.imageContainer}>
+                      <img
+                        src={project.image}
+                        alt={project.title}
+                        className={styles.projectImage}
+                        loading="lazy"
+                        decoding="async"
+                      />
 
-                        {/* Category Pill Tag */}
+                      {project.category && (
                         <span className={styles.categoryBadge}>{project.category}</span>
-                      </div>
-
-                      {/* Information Card Overlay */}
-                      <div className={styles.projectInfo}>
-                        {project.location && (
-                          <div className={styles.locationTag}>
-                            <MapPin size={12} className={styles.pinIcon} />
-                            <span>{project.location}</span>
-                          </div>
-                        )}
-
-                        <h3 className={styles.projectTitle}>{project.title}</h3>
-                        <p className={styles.projectDesc}>{project.description}</p>
-
-                        <div className={styles.viewAction}>
-                          <span className={styles.viewActionText}>VIEW PROJECT</span>
-                          <ArrowRight size={14} className={styles.actionArrow} />
-                        </div>
-                      </div>
-
-                      {/* Gold Frame Highlight */}
-                      <div className={styles.borderFrame} />
+                      )}
                     </div>
-                  );
-                })}
+
+                    <div className={styles.viewAction}>
+                      <span className={styles.viewActionText}>View Project</span>
+                      <ArrowRight size={14} className={styles.actionArrow} />
+                    </div>
+
+                    {/* Gold Frame Highlight */}
+                    <div className={styles.borderFrame} />
+                  </div>
+                ))}
               </div>
             )}
           </>

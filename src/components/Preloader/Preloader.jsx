@@ -3,8 +3,9 @@ import { useGSAP } from '@gsap/react';
 import { gsap, getLenis, prefersReducedMotion } from '../../lib/smoothScroll';
 import { shouldShowPreloader, markPreloaderComplete } from '../../lib/preloaderSignal';
 import { lockScroll, unlockScroll as unlockScrollShared } from '../../lib/scrollLock';
-import LogoMark from '../common/LogoMark';
 import styles from './Preloader.module.scss';
+
+const LOGO_SRC = 'assets/logo/black-shades-logo-full.webp';
 
 const HERO_IMAGE_SRC = 'assets/hero/hero-bg.webp';
 const MAX_EXTRA_WAIT = 500; // ms — hard cap on top of the intro if the hero image is slow/broken
@@ -117,17 +118,7 @@ const Preloader = () => {
       <div className={styles.glow} aria-hidden="true" />
 
       <div ref={logoWrapRef} className={styles.brandBlock}>
-        <div className={styles.markWrap}>
-          <LogoMark className={styles.mark} />
-        </div>
-        <div className={styles.wordmark}>
-          <span className={styles.title}>BLACK SHADES</span>
-          <div className={styles.subtitleRow}>
-            <span className={styles.dash} aria-hidden="true" />
-            <span className={styles.sub}>HOME DECORS</span>
-            <span className={styles.dash} aria-hidden="true" />
-          </div>
-        </div>
+        <img src={LOGO_SRC} alt="Black Shades Home Decors" className={styles.logoImage} />
       </div>
 
       <div className={styles.progressBlock} aria-hidden="true">

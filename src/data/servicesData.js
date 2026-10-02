@@ -7,6 +7,7 @@ export const servicesData = [
     description: "3D murals, themed walls, texture art, corporate branding walls and more, crafted with architectural precision.",
     details: "From majestic wildlife and classical relief sculptures to abstract geometric textures and corporate heritage walls. We employ high-density sculpting composites, stone relief techniques, and metallic patina finishes tailored for luxury residences and corporate lobbies.",
     image: "assets/services/murals.webp",
+    categorySlug: "murals",
     features: [
       "Custom 3D Bas-Relief & High-Relief",
       "Themed Feature Walls & Accent Panels",
@@ -23,6 +24,7 @@ export const servicesData = [
     description: "Life-size sculptures, busts, statues, art installations and decorative pieces made with weather-resistant fiberglass.",
     details: "Precision-molded and hand-finished FRP (Fiberglass Reinforced Polymer) sculptures. Ideal for grand indoor atriums, landscaped gardens, temple architecture, and commercial landmarks, offering incredible structural strength with lightweight versatility.",
     image: "assets/services/frp-sculptures.webp",
+    categorySlug: "sculptures",
     features: [
       "Life-Size Figurines & Deities (Ganesha, Buddha, Devas)",
       "Contemporary Abstract Sculptures",
@@ -39,6 +41,7 @@ export const servicesData = [
     description: "Premium marble powder + resin sculptures with fine detailing and exceptional durability for timeless aesthetics.",
     details: "Cast using bonded micro-fine Italian and Makrana marble stone powder with specialized polymer binders. Delivers the authentic cool touch, substantial weight, and museum-grade definition of hand-carved stone with superior chip resistance.",
     image: "assets/services/marble-sculptures.webp",
+    categorySlug: "sculptures",
     features: [
       "Classical Greek & Roman Busts",
       "Sacred Temple Sculptures & Pedestals",
@@ -71,6 +74,7 @@ export const servicesData = [
     description: "Gypsum, louvers, WPC, MDF, false ceilings, partitions and comprehensive turnkey interior craftsmanship.",
     details: "Complete interior fit-outs combining fluted wooden louvers, charcoal acoustic panels, concealed LED cove lighting, custom entertainment units, and architectural partitions for high-end residential and commercial spaces.",
     image: "assets/services/interior-decor.webp",
+    categorySlug: "interior-decor",
     features: [
       "Designer Fluted Louvers & WPC Cladding",
       "Multi-Tiered Gypsum False Ceilings",
@@ -87,6 +91,7 @@ export const servicesData = [
     description: "Pylon signs, illuminated signage, ACP signage and complete branding architectural solutions.",
     details: "Commanding exterior presence with architectural monolith pylons, 3D acrylic LED front-lit / halo-lit lettering, ACP composite paneling, and weather-proof facade signage engineered for maximum impact.",
     image: "assets/services/signage.webp",
+    categorySlug: "signage",
     features: [
       "Highway & Entrance Pylon Monoliths",
       "3D Halo-Lit & Front-Lit LED Channel Letters",
@@ -103,6 +108,7 @@ export const servicesData = [
     description: "MD cabins, office spaces, reception areas, meeting rooms and high-performance corporate environments.",
     details: "Tailored executive environments designed to impress clients and elevate productivity. We craft statement reception desks, executive MD cabins with custom leather & veneer accents, soundproof boardroom enclosures, and collaborative lounges.",
     image: "assets/services/corporate.webp",
+    categorySlug: "corporate-interiors",
     features: [
       "Executive MD Cabins & Director Suites",
       "Bespoke Boardrooms & Conference Tables",
@@ -119,6 +125,7 @@ export const servicesData = [
     description: "Warehouse design, supermarket interiors, retail display fixtures and smart commercial storage solutions.",
     details: "End-to-end retail merchandising layouts and industrial storage structures. Incorporating modular heavy-duty display gondolas, wooden organic produce racks, modern track lighting, and optimized customer circulation paths.",
     image: "assets/services/supermarket.webp",
+    categorySlug: "retail-commercial",
     features: [
       "Supermarket Racking & Boutique Display Fixtures",
       "Produce Gondolas & Refrigeration Trims",
@@ -142,5 +149,22 @@ export const servicesData = [
       "On-Time Project Management & Handover"
     ],
     tags: ["Turnkey", "Execution", "Full Project"]
+  },
+  {
+    id: "government-projects",
+    number: "10",
+    title: "Government Projects",
+    subtitle: "Public Infrastructure & Civic Landmarks",
+    description: "Civic installations, public monuments, government office interiors and large-scale commemorative works delivered to institutional standards.",
+    details: "Trusted for high-visibility government and institutional commissions, from commemorative sculptures and civic monuments to public-facing office interiors. We work within government procurement timelines and compliance requirements, delivering durable, large-scale installations built for public spaces and official events.",
+    image: "assets/services/government-projects.webp",
+    categorySlug: "government-projects",
+    features: [
+      "Commemorative Monuments & Civic Sculptures",
+      "Government Office & Public Building Interiors",
+      "Institutional Procurement & Compliance Handling",
+      "Large-Scale Public Installation & Handover"
+    ],
+    tags: ["Government Projects", "Civic Works", "Public Installations"]
   }
 ];

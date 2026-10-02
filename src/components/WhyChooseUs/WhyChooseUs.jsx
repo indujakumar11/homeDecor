@@ -71,7 +71,7 @@ const WhyChooseUs = ({ onOpenConsultation }) => {
               onClick={onOpenConsultation}
             >
               <MessageSquare size={16} />
-              <span>Walk In For A Consultation</span>
+              <span>Book A Consultation</span>
             </button>
           </div>
         </div>

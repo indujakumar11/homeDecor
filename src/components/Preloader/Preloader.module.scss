@@ -1,5 +1,4 @@
 @use '../../styles/variables' as *;
-@use '../../styles/mixins' as *;
 
 .overlay {
   position: fixed;
@@ -32,56 +31,11 @@
   gap: 1rem;
 }
 
-.markWrap {
-  width: clamp(56px, 9vw, 84px);
-  height: clamp(56px, 9vw, 84px);
-}
-
-.mark {
-  width: 100%;
-  height: 100%;
+.logoImage {
+  width: clamp(220px, 34vw, 380px);
+  height: auto;
   display: block;
   filter: drop-shadow(0 0 18px rgba(181, 138, 60, 0.25));
-}
-
-.wordmark {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.title {
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: clamp(1.5rem, 4vw, 2.2rem);
-  letter-spacing: 0.1em;
-  @include gold-text;
-}
-
-.subtitleRow {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin-top: 0.5rem;
-}
-
-.dash {
-  display: inline-block;
-  width: 16px;
-  height: 1px;
-  background: var(--color-gold);
-  opacity: 0.7;
-}
-
-.sub {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: clamp(0.68rem, 1.6vw, 0.82rem);
-  letter-spacing: 0.32em;
-  color: var(--color-cream);
-  text-transform: uppercase;
-  opacity: 0.9;
 }
 
 .progressBlock {

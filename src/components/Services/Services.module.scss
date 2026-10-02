@@ -251,6 +251,7 @@
   position: relative;
   min-height: 320px;
   background: #161616;
+  overflow: hidden; // clips the slide-in motion to the image box
 
   @include respond-to('md') {
     min-height: 220px;
@@ -261,6 +262,42 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  animation-duration: 0.45s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+}
+
+// Restarted on every slide change via the <img>'s React `key` — the image
+// slides in left-to-right (.slideNext, for "next"/autoplay) or
+// right-to-left (.slidePrev, for "previous") rather than swapping instantly.
+.slideNext {
+  animation-name: slideInFromRight;
+}
+
+.slidePrev {
+  animation-name: slideInFromLeft;
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(28%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-28%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .modalImgOverlay {
@@ -281,6 +318,72 @@
   background: rgba(8, 8, 8, 0.85);
   padding: 0.35rem 0.8rem;
   border: 1px solid var(--color-gold);
+}
+
+.carouselArrow {
+  @include button-reset;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: var(--color-gold-light);
+  background: rgba(10, 10, 10, 0.6);
+  border: 1px solid rgba(181, 138, 60, 0.4);
+  backdrop-filter: blur(4px);
+  transition: all var(--transition-fast);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--color-gold);
+    color: #000;
+    border-color: var(--color-gold);
+  }
+}
+
+.carouselArrowPrev {
+  left: 0.85rem;
+}
+
+.carouselArrowNext {
+  right: 0.85rem;
+}
+
+.carouselDots {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.carouselDot {
+  @include button-reset;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(245, 245, 245, 0.4);
+  border: 1px solid rgba(8, 8, 8, 0.4);
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: rgba(245, 245, 245, 0.7);
+  }
+
+  &.carouselDotActive {
+    background: var(--color-gold-light);
+    border-color: var(--color-gold);
+    width: 20px;
+    border-radius: 3px;
+  }
 }
 
 .modalContentCol {
@@ -354,6 +457,15 @@
     button {
       width: 100%;
     }
+  }
+}
+
+// Placed last so it wins the cascade over .slideNext/.slidePrev above
+// (same specificity, so source order decides) — carousel slides just swap
+// instantly for prefers-reduced-motion, no transform/opacity animation.
+@media (prefers-reduced-motion: reduce) {
+  .modalImg {
+    animation: none;
   }
 }
 

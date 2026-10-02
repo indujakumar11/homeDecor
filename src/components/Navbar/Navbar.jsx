@@ -93,7 +93,7 @@ const Navbar = ({ onOpenConsultation }) => {
       <header ref={headerRef} className={`${styles.header} ${isScrolled ? styles.scrolled : ''} ${isHidden ? styles.hidden : ''}`}>
         <div className={`container ${styles.navContainer}`}>
           {/* Brand Monogram & Title */}
-          <Logo size="small" />
+          <Logo size="small" showTagline />
 
           {/* Desktop Navigation Links */}
           <nav className={styles.desktopNav} aria-label="Main Navigation">
@@ -154,7 +154,7 @@ const Navbar = ({ onOpenConsultation }) => {
       />
       <div className={`${styles.mobileDrawer} ${mobileMenuOpen ? styles.open : ''}`}>
         <div className={styles.drawerHeader}>
-          <Logo size="small" />
+          <Logo size="small" showTagline />
           <button 
             className={styles.closeDrawerBtn} 
             onClick={() => setMobileMenuOpen(false)}
