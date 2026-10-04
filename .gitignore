@@ -43,3 +43,7 @@ local-data.sql
 
 Black-Shade Images
 categorized
+
+# Backfill script runtime reports (scripts/backfill-gallery-images.js) —
+# generated per-run output, never required by the app, never commit
+scripts/*.report.*.json
