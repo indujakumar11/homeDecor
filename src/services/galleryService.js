@@ -134,15 +134,38 @@ export async function updateImage(id, data) {
     .maybeSingle();
 
   assertNoError(error, 'Failed to update decor item');
-  return updated ? mapItem(updated) : null;
+
+  // RLS can make an UPDATE match (and therefore affect) zero rows without
+  // Supabase ever reporting `error` — this already-selected `updated` being
+  // null is exactly that case (as opposed to a real Supabase error, which
+  // assertNoError above would have already thrown on). Must be treated as
+  // a failure, not a silent no-op the caller mistakes for success.
+  if (!updated) {
+    throw new Error('No decor item was updated. It may not exist or you may not have permission.');
+  }
+
+  return mapItem(updated);
 }
 
 export async function deleteImage(id) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('decor_items')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
 
   assertNoError(error, 'Failed to delete decor item');
+
+  // Same zero-affected-rows case as updateImage() above: RLS can silently
+  // filter a DELETE down to zero matched rows with no `error` at all.
+  // Requesting `id` back via .select() is what makes this detectable —
+  // without it, Supabase never tells us whether anything was actually
+  // deleted. Callers (GalleryManagementPage.jsx's handleConfirmDelete)
+  // already stop before touching R2 when this throws — see its existing
+  // try/catch.
+  if (!data || data.length === 0) {
+    throw new Error('No decor item was deleted. It may not exist or you may not have permission.');
+  }
+
   return true;
 }
