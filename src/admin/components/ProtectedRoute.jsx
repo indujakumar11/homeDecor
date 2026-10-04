@@ -1,25 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { hasValidOtpProof } from '../../services/authService';
+import { hasValidOtpProof, isCurrentUserEnabledAdmin, getVerifiedTotpFactor, logout } from '../../services/authService';
 import styles from './ProtectedRoute.module.scss';
 
-// Guards admin pages behind a real Supabase Auth session AND a completed
-// second factor — Step 3C.1/3C.2's Worker-verified OTP proof, OR (Phase 3 of
-// the TOTP migration, additive, not a replacement) Supabase's own native
-// aal2. A session alone is not enough: signInWithPassword() succeeds before
-// either second factor starts, so relying on session existence alone would
-// let someone skip straight to /admin/gallery after just entering a
-// password. Both checks are client-side convenience/UX gates only — the
-// Worker independently re-validates the OTP proof (and the Supabase token)
-// on every privileged request, which is the real security boundary today
-// (see worker/src/index.ts, requireOtpVerifiedUser). Server-side AAL2
-// enforcement (RLS + Worker) is a later phase — this frontend check does
-// not yet change what the Worker/RLS accept, only which login path a user
-// can use to reach the admin UI at all.
+// Guards admin pages behind, in order:
+//   1. a real Supabase Auth session
+//   2. the authenticated user being an ENABLED ADMIN (public.admin_users,
+//      checked via the existing SECURITY DEFINER public.is_enabled_admin()
+//      RPC — see authService.js's isCurrentUserEnabledAdmin(). Phase 6B:
+//      previously this check didn't exist here at all, which meant any
+//      authenticated Supabase account (signup is open) that reached aal2
+//      via its own TOTP enrollment could pass this guard and load the
+//      admin UI shell, even though it could never perform any privileged
+//      write (Worker/RLS independently require admin_users.enabled too).
+//      This step closes that UI-shell-access gap.)
+//   3. a completed second factor — the existing Worker-verified OTP proof
+//      (unchanged, additive, still checked first so the old flow keeps
+//      working exactly as before), OR Supabase's own native aal2 reached
+//      via an already-VERIFIED TOTP factor.
+// A session alone is not enough, and (as of Phase 6B) neither is a session
+// + aal2 alone — admin_users.enabled is mandatory. None of these checks are
+// the real security boundary on their own: the Worker independently
+// re-validates the OTP proof (or the verified JWT's aal2 claim) and
+// admin_users on every privileged request (see worker/src/index.ts,
+// requireOtpVerifiedUser / authorizeAdminRequest), and RLS independently
+// re-checks aal2 + is_enabled_admin() (or the old otp_verified claim) on
+// every direct database write (see supabase/migrations/008_aal2_decor_
+// items_authorization.sql). This component only controls which route a
+// user lands on — it cannot grant or withhold any actual data access.
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
-  const [status, setStatus] = useState('checking'); // 'checking' | 'authenticated' | 'no-session' | 'no-proof'
+  const navigate = useNavigate();
+  // 'checking' | 'authenticated' | 'no-session' | 'not-admin' | 'no-totp' | 'needs-mfa-verify'
+  const [status, setStatus] = useState('checking');
 
   useEffect(() => {
     let cancelled = false;
@@ -32,20 +46,38 @@ const ProtectedRoute = ({ children }) => {
         return;
       }
 
+      // Phase 6B: checked immediately after confirming a session exists,
+      // before anything else — an authenticated-but-not-enabled-admin
+      // account is blocked here regardless of OTP proof / TOTP / aal2
+      // state, closing the gap described above.
+      const isAdmin = await isCurrentUserEnabledAdmin();
+      if (cancelled) return;
+      if (!isAdmin) {
+        setStatus('not-admin');
+        return;
+      }
+
+      // Existing Worker-verified OTP proof — unchanged, still accepted on
+      // its own for an enabled admin, exactly as before Phase 6B.
       if (hasValidOtpProof(data.session.user.id)) {
         setStatus('authenticated');
         return;
       }
 
-      // Phase 3 — TOTP migration: additionally accept a session that has
-      // reached Supabase's own native aal2, alongside the existing
-      // OTP-proof check above. Purely additive — an aal1-only session
-      // (password done, TOTP not yet verified) still falls through to
-      // 'no-proof' exactly as before; nothing here weakens the existing
-      // check.
+      // Distinguish "no verified TOTP factor at all yet" (→ setup) from
+      // "has one, just hasn't completed it this session" (→ verify) —
+      // previously collapsed into a single aal2 check that couldn't tell
+      // these apart.
+      const verifiedFactor = await getVerifiedTotpFactor();
+      if (cancelled) return;
+      if (!verifiedFactor) {
+        setStatus('no-totp');
+        return;
+      }
+
       const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (!cancelled) {
-        setStatus(aalData?.currentLevel === 'aal2' ? 'authenticated' : 'no-proof');
+        setStatus(aalData?.currentLevel === 'aal2' ? 'authenticated' : 'needs-mfa-verify');
       }
     })();
 
@@ -53,6 +85,11 @@ const ProtectedRoute = ({ children }) => {
       cancelled = true;
     };
   }, [location.pathname]);
+
+  const handleSignOut = async () => {
+    await logout();
+    navigate('/admin/login', { replace: true });
+  };
 
   if (status === 'checking') {
     return (
@@ -67,11 +104,22 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
-  if (status === 'no-proof') {
-    // Phase 3 — the new login flow's second-factor step lives at
-    // /admin/mfa now. The old /admin/otp route itself is untouched and
-    // still independently reachable (e.g. direct navigation), but nothing
-    // routes users there anymore as part of reaching the admin UI.
+  if (status === 'not-admin') {
+    return (
+      <div className={styles.checkingScreen}>
+        <p className={styles.unauthorizedMessage}>You are not authorized to access the admin area.</p>
+        <button type="button" className={styles.signOutBtn} onClick={handleSignOut}>
+          Sign out
+        </button>
+      </div>
+    );
+  }
+
+  if (status === 'no-totp') {
+    return <Navigate to="/admin/mfa-setup" state={{ from: location }} replace />;
+  }
+
+  if (status === 'needs-mfa-verify') {
     return <Navigate to="/admin/mfa" state={{ from: location }} replace />;
   }
 

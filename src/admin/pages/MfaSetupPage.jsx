@@ -1,31 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { ShieldCheck, QrCode, ArrowLeft } from 'lucide-react';
-import { Navigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { isCurrentUserEnabledAdmin } from '../../services/authService';
 import InlineAlert from '../components/InlineAlert';
 import styles from './AuthPages.module.scss';
 
 // ============================================================================
-// TEMPORARY — Phase 2 of the Supabase TOTP MFA migration (audit-approved).
+// Admin TOTP enrollment — client first-time setup (Phase 6B)
 // ============================================================================
-// This page exists ONLY to prove that native Supabase TOTP enrollment and
-// verification work end-to-end, using a real admin session. It is entirely
-// additive and self-contained:
-//   - Does NOT touch LoginPage.jsx, OtpPage.jsx, authService.login()/
-//     verifyOtp(), the Worker's OTP routes, otpProvider.ts, x-otp-proof,
-//     otp_authorizations, the custom access token hook, or ProtectedRoute.
-//   - Reaching AAL2 here does NOT grant access to anything — /admin/gallery
-//     and every other protected route still require the existing
-//     Twilio/mock OTP proof exactly as before. This page's own AAL2 result
-//     is displayed for inspection only, never used to gate anything.
-//   - Requires only a plain authenticated Supabase session (the same check
-//     OtpPage.jsx already uses) — a small, DEDICATED check, intentionally
-//     not ProtectedRoute, since ProtectedRoute also requires the existing
-//     OTP proof, which would make this page untestable on its own.
-// Safe to delete this entire file (and its one route in AdminApp.jsx) once
-// Phase 2 testing is complete and the migration moves to later phases, or
-// if the migration is abandoned — nothing else in the app depends on it.
+// Originated in Phase 2 as a throwaway test harness; now the real,
+// production first-time-setup page an enabled admin is routed to by
+// LoginPage.jsx (no verified TOTP yet) or ProtectedRoute.jsx ('no-totp').
+// Still entirely additive and self-contained — does NOT touch LoginPage's
+// password step, OtpPage.jsx, authService.login()/verifyOtp(), the Worker's
+// OTP routes, otpProvider.ts, x-otp-proof, otp_authorizations, or the
+// custom access token hook.
+//
+// Phase 6B SECURITY FIX: previously this page only checked for a plain
+// session before starting enrollment — ANY authenticated Supabase account
+// (signup is open) could reach it and enroll/verify its own TOTP factor.
+// It now also requires isCurrentUserEnabledAdmin() (the same
+// SECURITY DEFINER admin_users check used by ProtectedRoute.jsx) to pass
+// BEFORE listFactors()/enroll() is ever called — a non-admin sees only an
+// "unauthorized" message, never the QR code, secret, or enrollment UI.
+// TOTP enrollment itself still does not grant admin authorization — the
+// Worker and RLS independently and exclusively decide that, unchanged.
 // ============================================================================
 
 function mapMfaError(error) {
@@ -37,9 +37,10 @@ function mapMfaError(error) {
 }
 
 const MfaSetupPage = () => {
-  // 'checking' | 'no-session' | 'loading-factors' | 'already-verified' |
-  // 'pending-factor-found' | 'enrolling' | 'awaiting-code' | 'verifying' |
-  // 'verified' | 'error'
+  const navigate = useNavigate();
+  // 'checking' | 'no-session' | 'not-admin' | 'loading-factors' |
+  // 'already-verified' | 'pending-factor-found' | 'enrolling' |
+  // 'awaiting-code' | 'verifying' | 'verified' | 'error'
   const [status, setStatus] = useState('checking');
   const [error, setError] = useState('');
 
@@ -54,7 +55,6 @@ const MfaSetupPage = () => {
   const [code, setCode] = useState('');
 
   const [assuranceResult, setAssuranceResult] = useState(null);
-  const [sessionStillValid, setSessionStillValid] = useState(null);
 
   const startEnrollment = async () => {
     setStatus('enrolling');
@@ -85,6 +85,16 @@ const MfaSetupPage = () => {
       if (cancelled) return;
       if (!sessionData.session) {
         setStatus('no-session');
+        return;
+      }
+
+      // Phase 6B: must pass BEFORE listFactors()/enroll() is ever called —
+      // a non-admin must never see the QR code, secret, or enrollment UI at
+      // all. See authService.js's isCurrentUserEnabledAdmin().
+      const isAdmin = await isCurrentUserEnabledAdmin();
+      if (cancelled) return;
+      if (!isAdmin) {
+        setStatus('not-admin');
         return;
       }
 
@@ -171,16 +181,24 @@ const MfaSetupPage = () => {
         return;
       }
 
-      // Verified — confirm the resulting assurance level and that a
-      // session still exists, purely for display/testing purposes. Nothing
-      // here is stored or used to gate access to anything else.
+      // Phase 6B: verify() succeeding is not itself treated as "done" —
+      // explicitly require currentLevel === 'aal2' before ever claiming
+      // success or proceeding anywhere. If this session somehow didn't
+      // reach aal2, show an error and stay here rather than displaying a
+      // misleading confirmation.
       const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      setAssuranceResult(aalError ? null : aalData);
-
-      const { data: sessionData } = await supabase.auth.getSession();
-      setSessionStillValid(Boolean(sessionData.session));
-
+      if (aalError || aalData?.currentLevel !== 'aal2') {
+        setError('Verification succeeded, but the session did not reach the required security level. Please try again.');
+        setStatus('awaiting-code');
+        return;
+      }
+      setAssuranceResult(aalData);
       setStatus('verified');
+      // Brief confirmation beat (matches this project's existing
+      // save-success-then-navigate convention, e.g. EditImagePage.jsx)
+      // before continuing to the admin dashboard — ProtectedRoute
+      // independently re-verifies everything on arrival regardless.
+      setTimeout(() => navigate('/admin/gallery', { replace: true }), 1200);
     } catch {
       setError('Network error during verification. Please check your connection and try again.');
       setStatus('awaiting-code');
@@ -212,15 +230,26 @@ const MfaSetupPage = () => {
           <span className={styles.brandSub}>ADMIN PORTAL</span>
         </div>
 
-        <h1 className={styles.heading}>Set up Authenticator App</h1>
-        <p className={styles.subheading}>
-          Temporary TOTP setup/testing page (Phase 2) — this does not change how you currently log in.
-        </p>
+        <h1 className={styles.heading}>Set up your authenticator</h1>
+        {status !== 'not-admin' && (
+          <p className={styles.subheading}>
+            Your admin account requires two-factor authentication. Use an authenticator app such as Google
+            Authenticator or Microsoft Authenticator.
+          </p>
+        )}
 
         <InlineAlert type="error" message={error} className={styles.alert} />
 
         {(status === 'checking' || status === 'loading-factors' || status === 'enrolling') && (
           <p className={styles.subheading}>Loading…</p>
+        )}
+
+        {status === 'not-admin' && (
+          <InlineAlert
+            type="error"
+            message="You are not authorized to set up admin two-factor authentication."
+            className={styles.alert}
+          />
         )}
 
         {status === 'already-verified' && existingFactor && (
@@ -266,8 +295,8 @@ const MfaSetupPage = () => {
         {(status === 'awaiting-code' || status === 'verifying') && (
           <>
             <ol className={styles.subheading} style={{ textAlign: 'left' }}>
-              <li>Open your authenticator app.</li>
-              <li>Scan the QR code below.</li>
+              <li>Install or open Google Authenticator, Microsoft Authenticator, or another TOTP-compatible authenticator app.</li>
+              <li>Scan the QR code below (or use the manual setup key if you can&apos;t scan).</li>
               <li>Enter the 6-digit code shown by the app.</li>
               <li>Verify.</li>
             </ol>
@@ -276,7 +305,7 @@ const MfaSetupPage = () => {
 
             {(secret || otpauthUri) && (
               <div className={styles.field}>
-                <label className={styles.label}>Can&apos;t scan? Manual setup</label>
+                <label className={styles.label}>Can&apos;t scan? Manual setup key</label>
                 {secret && (
                   <p className={styles.subheading} style={{ wordBreak: 'break-all' }}>
                     Secret key: <strong>{secret}</strong>
@@ -316,27 +345,29 @@ const MfaSetupPage = () => {
 
         {status === 'verified' && (
           <>
-            <InlineAlert type="success" message="TOTP setup successful" className={styles.alert} />
+            <InlineAlert type="success" message="Authenticator setup successful" className={styles.alert} />
             <p className={styles.subheading}>
-              Authenticator assurance level: <strong>{assuranceResult?.currentLevel ?? 'unknown'}</strong>
-              {assuranceResult?.nextLevel ? ` (next: ${assuranceResult.nextLevel})` : ''}
+              Security level: <strong>{assuranceResult?.currentLevel ?? 'unknown'}</strong>
             </p>
-            <p className={styles.subheading}>
-              Supabase session still valid: <strong>{sessionStillValid ? 'yes' : 'no'}</strong>
-            </p>
-            <p className={styles.subheading}>
-              This result is for testing only — it has not changed how admin access works. Your existing login
-              still requires the current OTP step.
-            </p>
+            <p className={styles.subheading}>Taking you to the admin dashboard…</p>
           </>
         )}
 
-        <p className={styles.hint}>
-          <Link to="/admin/gallery">
-            <ArrowLeft size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
-            Return to admin area
-          </Link>
-        </p>
+        {status === 'not-admin' ? (
+          <p className={styles.hint}>
+            <Link to="/admin/login">
+              <ArrowLeft size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
+              Back to login
+            </Link>
+          </p>
+        ) : (
+          <p className={styles.hint}>
+            <Link to="/admin/gallery">
+              <ArrowLeft size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
+              Return to admin area
+            </Link>
+          </p>
+        )}
       </div>
     </div>
   );

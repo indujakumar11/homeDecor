@@ -400,3 +400,38 @@ export async function hasAal2Session() {
   if (error) return false;
   return data?.currentLevel === 'aal2';
 }
+
+// ============================================================================
+// PHASE 6B — frontend admin-allowlist check
+// ============================================================================
+// public.admin_users has RLS enabled with ZERO policies for `authenticated`/
+// `anon` and an explicit `revoke all ... from authenticated, anon, public`
+// (see supabase/migrations/004_admin_authorization_hardening.sql) — the
+// browser can never SELECT it directly, by design, and this function does
+// NOT change that. Instead it calls the EXISTING SECURITY DEFINER function
+// public.is_enabled_admin() (supabase/migrations/008_aal2_decor_items_
+// authorization.sql — already granted EXECUTE to `authenticated`, created
+// for Phase 5A's RLS policies, not a new function added for this). That
+// function takes NO parameters — it reads auth.uid() internally — so a
+// caller can only ever ask "am I an enabled admin," never "is some other
+// user id an enabled admin." admin_users itself remains fully locked down;
+// nothing about its RLS/grants changes because of this.
+//
+// IMPORTANT DEPLOYMENT DEPENDENCY: migration 008 has not yet been pushed to
+// production as of this writing (Phase 5A stopped awaiting approval) — this
+// function will fail closed (return false, via the `error` branch) in any
+// environment where that migration hasn't been applied yet, since the RPC
+// function won't exist there. It must be pushed before this works in
+// production — see the Phase 6B report.
+//
+// This is a UI-gating convenience only, exactly like the existing aal2/
+// OTP-proof checks elsewhere in this file — the Worker (authorizeAdminRequest)
+// and RLS (is_enabled_admin() used directly in policies) remain the real,
+// independently-enforced authorization boundary for any privileged
+// operation. This function being wrong/unavailable can only ever make the
+// frontend MORE restrictive (fails closed to `false`), never less.
+export async function isCurrentUserEnabledAdmin() {
+  const { data, error } = await supabase.rpc('is_enabled_admin');
+  if (error) return false;
+  return data === true;
+}

@@ -26,3 +26,25 @@
     transform: rotate(360deg);
   }
 }
+
+.unauthorizedMessage {
+  max-width: 320px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.signOutBtn {
+  background: none;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  color: var(--admin-text-muted);
+  padding: 0.6rem 1.2rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color var(--admin-transition), color var(--admin-transition);
+
+  &:hover {
+    border-color: var(--admin-gold);
+    color: var(--admin-text-main);
+  }
+}

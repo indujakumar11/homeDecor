@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
-import { loginWithPassword, getVerifiedTotpFactor } from '../../services/authService';
+import { loginWithPassword, isCurrentUserEnabledAdmin, getVerifiedTotpFactor } from '../../services/authService';
 import InlineAlert from '../components/InlineAlert';
 import styles from './AuthPages.module.scss';
 
@@ -11,22 +11,25 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [needsMfaSetup, setNeedsMfaSetup] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Phase 3 — TOTP migration: password step only (no longer starts the old
-  // Worker OTP challenge here — see authService.js's loginWithPassword()).
-  // Once signed in, this checks for an already-enrolled, VERIFIED TOTP
-  // factor (an unverified/pending one is never treated as sufficient) and
-  // routes to the new /admin/mfa page. It deliberately never enrolls a
-  // factor itself — an account with no verified factor is told to set one
-  // up (via the existing /admin/mfa-setup page) rather than being silently
-  // let through. The old /admin/otp flow (authService.login()) is left
-  // completely intact and unused by this handler, per this phase's scope.
+  // Password step only (no longer starts the old Worker OTP challenge here
+  // — see authService.js's loginWithPassword()). Once signed in:
+  //   1. Phase 6B — must be an ENABLED ADMIN (public.admin_users, via the
+  //      existing isCurrentUserEnabledAdmin() RPC) before anything else is
+  //      even considered. A non-admin sees a flat "not authorized" message
+  //      — deliberately NOT a TOTP-setup prompt, so a confirmed non-admin
+  //      is never even told the enrollment path exists. (MfaSetupPage.jsx
+  //      independently re-checks this too — this is a UX improvement, not
+  //      the only enforcement.)
+  //   2. No verified TOTP factor yet → straight to /admin/mfa-setup
+  //      (first-time client onboarding — see that page).
+  //   3. Verified factor exists → /admin/mfa to enter the code.
+  // Never enrolls a factor itself. The old /admin/otp flow
+  // (authService.login()) is left completely intact and unused here.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setNeedsMfaSetup(false);
     setIsSubmitting(true);
 
     const result = await loginWithPassword(email, password);
@@ -37,11 +40,16 @@ const LoginPage = () => {
       return;
     }
 
+    const isAdmin = await isCurrentUserEnabledAdmin();
+    if (!isAdmin) {
+      setError('You are not authorized to access the admin area.');
+      setIsSubmitting(false);
+      return;
+    }
+
     const verifiedFactor = await getVerifiedTotpFactor();
     if (!verifiedFactor) {
-      setError('This admin account does not have an authenticator app (TOTP) enrolled yet.');
-      setNeedsMfaSetup(true);
-      setIsSubmitting(false);
+      navigate('/admin/mfa-setup');
       return;
     }
 
@@ -60,11 +68,6 @@ const LoginPage = () => {
         <p className={styles.subheading}>Enter your credentials to access the admin panel.</p>
 
         <InlineAlert type="error" message={error} className={styles.alert} />
-        {needsMfaSetup && (
-          <p className={styles.hint}>
-            <Link to="/admin/mfa-setup">Set up authenticator app</Link>
-          </p>
-        )}
 
         <form onSubmit={handleSubmit} className={styles.form} noValidate>
           <div className={styles.field}>
