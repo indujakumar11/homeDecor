@@ -104,6 +104,43 @@
   }
 }
 
+.passwordFieldWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordInput {
+  padding-right: 2.75rem;
+}
+
+.passwordToggleBtn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  margin: 0;
+  cursor: pointer;
+  color: var(--admin-text-dim);
+  transition: color var(--admin-transition);
+
+  &:hover {
+    color: var(--admin-text-main);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--admin-gold);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
 .otpInput {
   text-align: center;
   letter-spacing: 0.5em;
