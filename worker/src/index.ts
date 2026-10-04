@@ -56,9 +56,16 @@ export interface Env {
 // real, from a different origin (the Vite dev server) — so every response
 // needs CORS headers.
 //
-//   POST   /api/upload          - upload an image, returns { key, retrieveUrl }
+//   POST   /api/upload          - upload an image, returns { key, retrieveUrl, ... }
 //                                  (Step 3C.1: now requires a Supabase session
-//                                  + a valid OTP proof — see requireOtpVerifiedUser)
+//                                  + a valid OTP proof — see requireOtpVerifiedUser).
+//                                  Phase 1 gallery-image-optimization: also
+//                                  accepts an optional second form field,
+//                                  "galleryFile" (a client-resized WebP — see
+//                                  ImageForm.jsx), stored alongside the
+//                                  required "file" under the same generated
+//                                  UUID. See handleUpload for the exact
+//                                  contract and failure-handling rules.
 //   GET    /api/images/:key     - retrieve a stored image (public, unauthenticated
 //                                  — the public site displays these images)
 //   DELETE /api/images/:key     - remove a stored image (Step 3C.1: same auth
@@ -106,16 +113,37 @@ const ALLOWED_TYPES: Record<string, string> = {
 };
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB — development-only limit
+// Phase 1 gallery-image-optimization project: the optional, client-resized
+// WebP "gallery card" variant (see ImageForm.jsx) is always ≤1000px on its
+// long edge at quality 0.82 — in practice tens to a few hundred KB. 2MB is a
+// generous safety ceiling against something going wrong client-side, not a
+// target size.
+const MAX_GALLERY_FILE_SIZE = 2 * 1024 * 1024; // 2MB
 const UPLOAD_PREFIX = 'uploads/';
 
-// Matches exactly what handleUpload generates: uploads/<uuid>.<ext>. Applied
-// to every key-bearing request (GET/DELETE) so malformed, path-traversal-
-// looking, or otherwise unexpected keys are rejected with a clean 400
-// instead of being passed through to R2. R2 keys are opaque strings (not
-// filesystem paths), so there's no traversal vulnerability in R2 itself —
-// this is defense in depth, and it also guarantees one decor item's key can
-// never collide with or accidentally reference another's.
-const VALID_KEY_PATTERN = /^uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/i;
+// Every uploads/* key (original or gallery variant) is immutable once
+// written: handleUpload always mints a fresh crypto.randomUUID() per
+// request (never reuses or overwrites an existing key), and edit/delete
+// only ever DELETE a key, never PUT different bytes at an existing one —
+// see handleDeleteImage and src/services/uploadService.js. A given URL's
+// content therefore never changes, so long-lived, immutable caching is safe
+// for both originals and gallery variants served by handleGetImage.
+const IMAGE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
+// Matches exactly what handleUpload generates: uploads/<uuid>.<ext> for an
+// original, or uploads/<uuid>-gallery.webp for its optional optimized
+// gallery variant (same uuid, always .webp regardless of the original's
+// format — see handleUpload). Applied to every key-bearing request
+// (GET/DELETE) so malformed, path-traversal-looking, or otherwise
+// unexpected keys are rejected with a clean 400 instead of being passed
+// through to R2. R2 keys are opaque strings (not filesystem paths), so
+// there's no traversal vulnerability in R2 itself — this is defense in
+// depth, and it also guarantees one decor item's key (original or gallery)
+// can never collide with or accidentally reference another's. Still only
+// ever matches server-generated shapes — this validates keys the Worker
+// itself already constructed from a self-generated UUID, never a
+// client-supplied key.
+const VALID_KEY_PATTERN = /^uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\.(?:jpg|png|webp)|-gallery\.webp)$/i;
 
 function isValidKey(key: string): boolean {
 	return VALID_KEY_PATTERN.test(key);
@@ -680,6 +708,38 @@ async function handleHealth(request: Request, env: Env): Promise<Response> {
 	);
 }
 
+// Phase 1 gallery-image-optimization: validates the optional "galleryFile"
+// field. Unlike the required "file", any problem here (wrong type, too
+// large, empty, or missing entirely) is NOT a request-level error — it just
+// means no gallery variant gets stored, exactly like a storage-time failure
+// (see handleUpload's call site). Returns null if galleryFile is absent or
+// invalid, logging why when it was present-but-invalid so a misbehaving
+// client is still visible in the Worker's own logs.
+function readGalleryFile(formData: FormData): File | null {
+	const galleryFile = formData.get('galleryFile');
+	if (galleryFile === null) return null; // not supplied — normal, backward-compatible case
+
+	if (!(galleryFile instanceof File)) {
+		console.error('[handleUpload] "galleryFile" field was supplied but is not a file — ignoring it.');
+		return null;
+	}
+	if (galleryFile.type !== 'image/webp') {
+		console.error(`[handleUpload] galleryFile has unexpected type "${galleryFile.type}" (expected image/webp) — ignoring it.`);
+		return null;
+	}
+	if (galleryFile.size === 0) {
+		console.error('[handleUpload] galleryFile is empty — ignoring it.');
+		return null;
+	}
+	if (galleryFile.size > MAX_GALLERY_FILE_SIZE) {
+		console.error(
+			`[handleUpload] galleryFile is ${galleryFile.size} bytes, which exceeds the ${MAX_GALLERY_FILE_SIZE} byte (2MB) limit — ignoring it.`
+		);
+		return null;
+	}
+	return galleryFile;
+}
+
 async function handleUpload(request: Request, env: Env): Promise<Response> {
 	const authResult = await requireOtpVerifiedUser(request, env);
 	if (authResult instanceof Response) return authResult;
@@ -691,6 +751,7 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 		return json({ error: 'Expected multipart/form-data with a "file" field.' }, 400, request);
 	}
 
+	// --- 1. Validate original ("file") — required, unchanged from before. ---
 	const file = formData.get('file');
 	if (!(file instanceof File)) {
 		return json({ error: 'No file provided. Send it as multipart/form-data field "file".' }, 400, request);
@@ -717,10 +778,17 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 		);
 	}
 
-	// Key is generated server-side (never taken from user input), so it's
-	// inherently safe to use directly as an R2 object key.
-	const key = `${UPLOAD_PREFIX}${crypto.randomUUID()}.${extension}`;
+	// --- 2. Validate galleryFile ("galleryFile") — optional, never fails the request. ---
+	const galleryFile = readGalleryFile(formData);
 
+	// --- 3. Generate ONE UUID for this upload — server-side only, shared by
+	// both keys so the gallery variant is always derivable from the
+	// original's key. Never taken from user input. ---
+	const uuid = crypto.randomUUID();
+	const key = `${UPLOAD_PREFIX}${uuid}.${extension}`;
+
+	// --- 4. Store the original. This is the required artifact: any failure
+	// here fails the whole request, same as before this change. ---
 	try {
 		await env.DECOR_IMAGES.put(key, await file.arrayBuffer(), {
 			httpMetadata: { contentType: file.type },
@@ -730,6 +798,31 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 		return json({ error: `Failed to store image in R2: ${message}` }, 500, request);
 	}
 
+	// --- 5. Store the gallery variant, if one was supplied and validated.
+	// A failure here is NEVER reported as a request failure — the original
+	// is already safely stored, and the caller (ImageForm.jsx) must treat a
+	// null galleryKey/galleryRetrieveUrl exactly like "not backfilled yet"
+	// (gallery_image_url stays NULL in Supabase, falling back to the
+	// original). This is what keeps a flaky/failed gallery encode from ever
+	// blocking or breaking an otherwise-successful upload. ---
+	let galleryKey: string | null = null;
+	if (galleryFile) {
+		const candidateGalleryKey = `${UPLOAD_PREFIX}${uuid}-gallery.webp`;
+		try {
+			await env.DECOR_IMAGES.put(candidateGalleryKey, await galleryFile.arrayBuffer(), {
+				httpMetadata: { contentType: 'image/webp' },
+			});
+			galleryKey = candidateGalleryKey;
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			console.error(`[handleUpload] Failed to store gallery variant in R2 (original upload still succeeded): ${message}`);
+		}
+	}
+
+	// --- 6. Return both URLs — gallery fields are null when no gallery
+	// variant was supplied, failed validation, or failed to store. Every
+	// existing response field is preserved unchanged for callers that only
+	// knew about the original. ---
 	return json(
 		{
 			success: true,
@@ -737,6 +830,8 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 			size: file.size,
 			contentType: file.type,
 			retrieveUrl: `/api/images/${key}`,
+			galleryKey,
+			galleryRetrieveUrl: galleryKey ? `/api/images/${galleryKey}` : null,
 		},
 		200,
 		request
@@ -775,6 +870,7 @@ async function handleGetImage(request: Request, env: Env): Promise<Response> {
 				'content-type': object.httpMetadata?.contentType || 'application/octet-stream',
 				'content-length': String(object.size),
 				etag: object.httpEtag,
+				'cache-control': IMAGE_CACHE_CONTROL,
 			},
 		}),
 		request

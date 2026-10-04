@@ -8,7 +8,7 @@ const ImageCard = ({ image, onEdit, onDelete }) => {
   return (
     <div className={styles.card}>
       <div className={styles.thumbWrap}>
-        <img src={image.imageUrl} alt={image.title} className={styles.thumb} loading="lazy" decoding="async" />
+        <img src={image.galleryImageUrl ?? image.imageUrl} alt={image.title} className={styles.thumb} loading="lazy" decoding="async" />
         <span className={styles.categoryBadge}>{categoryName}</span>
       </div>
       <div className={styles.cardBody}>

@@ -18,7 +18,7 @@
 
 import { supabase } from '../lib/supabase';
 
-const ITEM_COLUMNS = 'id, category_id, title, description, image_url, created_at, updated_at, categories ( name, slug )';
+const ITEM_COLUMNS = 'id, category_id, title, description, image_url, gallery_image_url, created_at, updated_at, categories ( name, slug )';
 
 function mapCategory(row) {
   return {
@@ -37,6 +37,12 @@ function mapItem(row) {
     title: row.title,
     description: row.description || '',
     imageUrl: row.image_url,
+    // Phase 1 gallery-image-optimization — optional, client-resized WebP
+    // "gallery card" variant of imageUrl (see ImageForm.jsx). NULL for any
+    // item that doesn't have one yet (or never will). Callers must fall
+    // back to imageUrl: `galleryImageUrl ?? imageUrl` — never treat NULL
+    // here as an error or a missing/broken image.
+    galleryImageUrl: row.gallery_image_url ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -104,6 +110,7 @@ export async function addImage(data) {
       title: data.title,
       description: data.description || '',
       image_url: data.imageUrl,
+      gallery_image_url: data.galleryImageUrl ?? null,
     })
     .select(ITEM_COLUMNS)
     .single();
@@ -120,6 +127,7 @@ export async function updateImage(id, data) {
       title: data.title,
       description: data.description || '',
       image_url: data.imageUrl,
+      gallery_image_url: data.galleryImageUrl ?? null,
     })
     .eq('id', id)
     .select(ITEM_COLUMNS)

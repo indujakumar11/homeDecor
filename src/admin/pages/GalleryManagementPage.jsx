@@ -86,6 +86,13 @@ const GalleryManagementPage = () => {
     }
 
     await deleteImageByUrl(target.imageUrl);
+    // Phase 1 gallery-image-optimization: also best-effort delete the
+    // optimized gallery variant, if this item has one — same non-blocking
+    // semantics as the original's cleanup above. Skipped entirely (not even
+    // attempted) when null, e.g. a not-yet-backfilled legacy item.
+    if (target.galleryImageUrl) {
+      await deleteImageByUrl(target.galleryImageUrl);
+    }
     await refresh();
     setSuccessMessage('Image deleted successfully.');
   };

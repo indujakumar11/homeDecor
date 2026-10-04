@@ -39,12 +39,32 @@ async function privilegedHeaders() {
 
 /**
  * Uploads a File to the local Worker, which stores it in local R2.
- * Returns { key, imageUrl, deleteUrl } on success.
- * Throws an Error with a user-facing message on any failure.
+ *
+ * Phase 1 gallery-image-optimization: optionally also uploads a second,
+ * pre-resized WebP `galleryFile` (see ImageForm.jsx) in the SAME request —
+ * never a second request, so the Worker can pair both objects under one
+ * server-generated UUID (see worker/src/index.ts's handleUpload). Passing no
+ * `galleryFile` (or omitting the argument) is fully supported and behaves
+ * exactly as before this change — the Worker treats it as backward-compatible
+ * original-only upload.
+ *
+ * Returns { key, imageUrl, deleteUrl, galleryKey, galleryImageUrl,
+ * galleryDeleteUrl } on success. The gallery-* fields are null whenever no
+ * galleryFile was supplied, or the Worker couldn't validate/store it — the
+ * original upload still succeeds in that case (see the Worker's own
+ * failure-handling contract). Throws an Error with a user-facing message
+ * only when the REQUIRED original upload fails.
  */
-export async function uploadImage(file) {
+export async function uploadImage(file, galleryFile = null) {
   const formData = new FormData();
   formData.append('file', file);
+  if (galleryFile) {
+    // Explicit filename so galleryFile (a Blob from canvas.toBlob(), not a
+    // File) is unambiguously parsed as a file part by the Worker's
+    // request.formData() on every browser — the Worker itself never reads
+    // this name, only galleryFile.type.
+    formData.append('galleryFile', galleryFile, 'gallery.webp');
+  }
 
   let response;
   try {
@@ -74,6 +94,9 @@ export async function uploadImage(file) {
     key: result.key,
     imageUrl: `${WORKER_URL}${result.retrieveUrl}`,
     deleteUrl: `${WORKER_URL}${result.retrieveUrl}`,
+    galleryKey: result.galleryKey ?? null,
+    galleryImageUrl: result.galleryRetrieveUrl ? `${WORKER_URL}${result.galleryRetrieveUrl}` : null,
+    galleryDeleteUrl: result.galleryRetrieveUrl ? `${WORKER_URL}${result.galleryRetrieveUrl}` : null,
   };
 }
 

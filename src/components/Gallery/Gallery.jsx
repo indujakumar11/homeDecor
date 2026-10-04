@@ -63,6 +63,11 @@ const Gallery = ({ onOpenConsultation }) => {
     category: img.categoryName,
     location: img.location,
     image: img.imageUrl,
+    // Phase 1 gallery-image-optimization: optional, smaller WebP variant of
+    // `image` — null for any item without one yet. Only the grid card below
+    // uses this (with a fallback to the original); the lightbox/modal
+    // intentionally keeps using `image` (the original) unconditionally.
+    galleryImage: img.galleryImageUrl,
     description: img.description,
     scope: img.scope,
     year: img.year,
@@ -147,7 +152,7 @@ const Gallery = ({ onOpenConsultation }) => {
                   >
                     <div className={styles.imageContainer}>
                       <img
-                        src={project.image}
+                        src={project.galleryImage ?? project.image}
                         alt={project.title}
                         className={styles.projectImage}
                         loading="lazy"
