@@ -429,6 +429,213 @@ async function requireOtpVerifiedUser(request: Request, env: Env): Promise<Supab
 }
 
 // ============================================================================
+// PHASE 4 — Supabase native AAL2 + admin_users authorization (additive)
+// ============================================================================
+// Everything above this point (getAuthenticatedUser, requireOtpVerifiedUser,
+// and the x-otp-proof/otp_authorizations machinery elsewhere in this file)
+// is the EXISTING OTP-proof authorization path — completely unchanged,
+// still fully enforced exactly as before. The code below adds a SEPARATE,
+// independent authorization path based on Supabase's own native MFA
+// (aal2), used ALONGSIDE it (see authorizeAdminRequest at the end of this
+// block) — not a replacement. Per the dual-path design requested for this
+// phase: if the new path succeeds, access is granted; otherwise, the
+// existing old path is tried, completely unchanged.
+//
+// Signing-key configuration for this check was NOT assumed — it was
+// confirmed by directly querying this project's own
+// {SUPABASE_URL}/auth/v1/.well-known/jwks.json, which returned a real
+// published ES256 (ECDSA P-256) key. This project uses Supabase's modern
+// asymmetric JWT signing, not the legacy shared-secret (HS256) scheme — so
+// verification below needs only the PUBLIC key from that endpoint, never a
+// new secret, and is implemented with the Workers runtime's built-in
+// WebCrypto API only (the same crypto.subtle primitives already used for
+// this file's OTP-proof HMAC signing above) — no new dependency.
+
+interface SupabaseJwk {
+	kty: string;
+	crv: string;
+	x: string;
+	y: string;
+	kid: string;
+}
+
+interface JwksCacheEntry {
+	keys: SupabaseJwk[];
+	fetchedAt: number;
+}
+
+// Module-scope cache: persists across requests within the same Worker
+// isolate (a standard, safe Workers pattern — never shared across
+// isolates/machines, and a cold start simply starts empty). Bounds how
+// often we re-fetch the JWKS endpoint on the common path; a token whose
+// `kid` isn't found in the cached set always forces one immediate refresh
+// (see findJwk) regardless of this TTL, so genuine key rotation is never
+// blocked by it — this TTL only paces ROUTINE re-fetching.
+let jwksCache: JwksCacheEntry | null = null;
+const JWKS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+async function fetchJwks(env: Env): Promise<SupabaseJwk[]> {
+	const res = await fetch(`${env.SUPABASE_URL}/auth/v1/.well-known/jwks.json`);
+	if (!res.ok) throw new Error(`JWKS fetch failed with status ${res.status}`);
+	const data = (await res.json()) as { keys?: SupabaseJwk[] };
+	return data.keys ?? [];
+}
+
+async function findJwk(kid: string, env: Env): Promise<SupabaseJwk | null> {
+	const now = Date.now();
+	if (!jwksCache || now - jwksCache.fetchedAt >= JWKS_CACHE_TTL_MS) {
+		try {
+			jwksCache = { keys: await fetchJwks(env), fetchedAt: now };
+		} catch (err) {
+			console.error('[verifySupabaseJwt] JWKS fetch failed:', err instanceof Error ? err.message : String(err));
+			return null;
+		}
+	}
+
+	let match = jwksCache.keys.find((k) => k.kid === kid);
+	if (!match) {
+		// Unknown kid — refresh once in case of a genuine key rotation since
+		// our last cache, then give up if it's still not found.
+		try {
+			jwksCache = { keys: await fetchJwks(env), fetchedAt: now };
+		} catch (err) {
+			console.error('[verifySupabaseJwt] JWKS refresh failed:', err instanceof Error ? err.message : String(err));
+			return null;
+		}
+		match = jwksCache.keys.find((k) => k.kid === kid);
+	}
+	return match ?? null;
+}
+
+// Reuses the identical base64urlToBytes() helper already defined above
+// (originally written for the OTP proof's own HMAC verification) — same
+// decoding logic, no need for a second copy.
+
+interface VerifiedJwtClaims {
+	sub: string;
+	aal?: string;
+}
+
+// Cryptographically verifies a Supabase-issued access token end to end:
+// signature (ES256, against this project's own published JWKS public key —
+// never a client-supplied or guessed key), expiry, and issuer. Returns the
+// verified claims ONLY if every check passes; returns null on ANY failure
+// (malformed token, unsupported/unexpected alg, unknown kid, bad
+// signature, expired, wrong issuer, missing sub). This is the ONLY place
+// in this codebase that trusts claims decoded from a Supabase access
+// token's payload — callers must never read `aal`/`sub` from anywhere else
+// without going through this function first.
+async function verifySupabaseJwt(token: string, env: Env): Promise<VerifiedJwtClaims | null> {
+	const parts = token.split('.');
+	if (parts.length !== 3) return null;
+	const [headerB64, payloadB64, signatureB64] = parts;
+
+	let header: { alg?: string; kid?: string };
+	let payload: Record<string, unknown>;
+	try {
+		header = JSON.parse(new TextDecoder().decode(base64urlToBytes(headerB64)));
+		payload = JSON.parse(new TextDecoder().decode(base64urlToBytes(payloadB64)));
+	} catch {
+		return null;
+	}
+
+	// Reject anything other than the exact algorithm this project's JWKS
+	// actually publishes — defense against algorithm-confusion attacks (a
+	// forged "alg":"none" or "alg":"HS256" token must never be accepted just
+	// because the payload looks right).
+	if (header.alg !== 'ES256' || !header.kid) return null;
+
+	const jwk = await findJwk(header.kid, env);
+	if (!jwk || jwk.kty !== 'EC' || jwk.crv !== 'P-256') return null;
+
+	let publicKey: CryptoKey;
+	try {
+		publicKey = await crypto.subtle.importKey(
+			'jwk',
+			{ kty: jwk.kty, crv: jwk.crv, x: jwk.x, y: jwk.y, ext: true },
+			{ name: 'ECDSA', namedCurve: 'P-256' },
+			false,
+			['verify']
+		);
+	} catch (err) {
+		console.error('[verifySupabaseJwt] JWK import failed:', err instanceof Error ? err.message : String(err));
+		return null;
+	}
+
+	const signingInput = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
+	const signatureBytes = base64urlToBytes(signatureB64);
+
+	let signatureValid: boolean;
+	try {
+		// WebCrypto's ECDSA verify expects the raw (r || s) signature format,
+		// which is exactly what JOSE/JWS ES256 already produces — no DER
+		// conversion needed.
+		signatureValid = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, publicKey, signatureBytes, signingInput);
+	} catch (err) {
+		console.error('[verifySupabaseJwt] crypto.subtle.verify failed unexpectedly:', err instanceof Error ? err.message : String(err));
+		return null;
+	}
+	if (!signatureValid) return null;
+
+	// Only now — strictly AFTER a verified signature — is anything in
+	// `payload` trusted.
+	if (typeof payload.exp !== 'number' || Date.now() >= payload.exp * 1000) return null;
+	if (typeof payload.iss !== 'string' || payload.iss !== `${env.SUPABASE_URL}/auth/v1`) return null;
+	if (typeof payload.sub !== 'string' || !payload.sub) return null;
+
+	return {
+		sub: payload.sub,
+		aal: typeof payload.aal === 'string' ? payload.aal : undefined,
+	};
+}
+
+// New-path authorization attempt: verified JWT + aal2 + enabled admin_users
+// row. Returns the authorized user, or null if ANY part of this specific
+// path fails for ANY reason (missing/invalid token, aal1, not an admin,
+// etc.) — null here means "this path didn't authorize the request," not
+// "deny the request outright": see authorizeAdminRequest below, which
+// falls back to the existing OTP-proof path on null, exactly as this
+// phase's requested dual-path design specifies. Never throws, never
+// returns a Response itself — keeps this function a pure yes/no check so
+// the caller controls what happens next.
+async function tryAal2AdminAuthorization(request: Request, env: Env): Promise<SupabaseUser | null> {
+	const authHeader = request.headers.get('authorization') || '';
+	const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+	if (!token) return null;
+
+	const claims = await verifySupabaseJwt(token, env);
+	if (!claims) return null;
+
+	// The AAL comes ONLY from the cryptographically verified JWT payload
+	// above — never from any client-supplied header (x-aal, x-mfa, or
+	// similar are never read anywhere in this codebase).
+	if (claims.aal !== 'aal2') return null;
+
+	// Reuses the EXACT SAME admin_users.enabled check the old path already
+	// uses (isEnabledAdmin, defined above) — not a second, divergent
+	// implementation of "is this user an admin."
+	const admin = await isEnabledAdmin(claims.sub, env);
+	if (!admin) return null;
+
+	return { id: claims.sub };
+}
+
+// The dual-path gate requested for this phase: try the new AAL2 +
+// admin_users path first; if it doesn't authorize the request (for any
+// reason), fall back to the existing, completely unchanged OTP-proof path.
+// Either path succeeding is sufficient; neither path is weakened by the
+// other's existence. This is a drop-in replacement for
+// requireOtpVerifiedUser at call sites — same return shape
+// (SupabaseUser | Response), same "if (result instanceof Response) return
+// result;" usage.
+async function authorizeAdminRequest(request: Request, env: Env): Promise<SupabaseUser | Response> {
+	const aal2User = await tryAal2AdminAuthorization(request, env);
+	if (aal2User) return aal2User;
+
+	return requireOtpVerifiedUser(request, env);
+}
+
+// ============================================================================
 // OTP routes (/api/otp/*) — the application's only OTP API
 // ============================================================================
 // Which actual provider runs behind these is decided entirely by
@@ -741,7 +948,9 @@ function readGalleryFile(formData: FormData): File | null {
 }
 
 async function handleUpload(request: Request, env: Env): Promise<Response> {
-	const authResult = await requireOtpVerifiedUser(request, env);
+	// Phase 4: tries the new AAL2 + admin_users path first, falls back to
+	// the existing OTP-proof path unchanged — see authorizeAdminRequest.
+	const authResult = await authorizeAdminRequest(request, env);
 	if (authResult instanceof Response) return authResult;
 
 	let formData: FormData;
@@ -886,7 +1095,9 @@ async function handleGetImage(request: Request, env: Env): Promise<Response> {
 // finer-grained per-admin permission model is a real redesign (roles, an
 // admin table) explicitly out of scope for this step.
 async function handleDeleteImage(request: Request, env: Env): Promise<Response> {
-	const authResult = await requireOtpVerifiedUser(request, env);
+	// Phase 4: tries the new AAL2 + admin_users path first, falls back to
+	// the existing OTP-proof path unchanged — see authorizeAdminRequest.
+	const authResult = await authorizeAdminRequest(request, env);
 	if (authResult instanceof Response) return authResult;
 
 	const key = extractKey(request, '/api/images/');

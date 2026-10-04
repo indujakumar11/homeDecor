@@ -4,17 +4,19 @@ import { supabase } from '../../lib/supabase';
 import { hasValidOtpProof } from '../../services/authService';
 import styles from './ProtectedRoute.module.scss';
 
-// Guards admin pages behind BOTH a real Supabase Auth session AND a
-// completed (Worker-verified) OTP step — Step 3C.1/3C.2. A session alone is
-// not enough: signInWithPassword() succeeds before OTP even starts, so
-// relying on session existence alone would let someone skip straight to
-// /admin/gallery after just entering a password. The OTP-proof check here
-// (including that the proof belongs to THIS session's user, not some other
-// account's leftover proof) is a client-side convenience/UX gate only — the
-// Worker independently re-validates the proof (and the Supabase token) on
-// every privileged request, which is the real security boundary (see
-// worker/src/index.ts, requireOtpVerifiedUser). No AAL/MFA level check —
-// that's a later step.
+// Guards admin pages behind a real Supabase Auth session AND a completed
+// second factor — Step 3C.1/3C.2's Worker-verified OTP proof, OR (Phase 3 of
+// the TOTP migration, additive, not a replacement) Supabase's own native
+// aal2. A session alone is not enough: signInWithPassword() succeeds before
+// either second factor starts, so relying on session existence alone would
+// let someone skip straight to /admin/gallery after just entering a
+// password. Both checks are client-side convenience/UX gates only — the
+// Worker independently re-validates the OTP proof (and the Supabase token)
+// on every privileged request, which is the real security boundary today
+// (see worker/src/index.ts, requireOtpVerifiedUser). Server-side AAL2
+// enforcement (RLS + Worker) is a later phase — this frontend check does
+// not yet change what the Worker/RLS accept, only which login path a user
+// can use to reach the admin UI at all.
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
   const [status, setStatus] = useState('checking'); // 'checking' | 'authenticated' | 'no-session' | 'no-proof'
@@ -22,14 +24,30 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     let cancelled = false;
 
-    supabase.auth.getSession().then(({ data }) => {
+    (async () => {
+      const { data } = await supabase.auth.getSession();
       if (cancelled) return;
       if (!data.session) {
         setStatus('no-session');
         return;
       }
-      setStatus(hasValidOtpProof(data.session.user.id) ? 'authenticated' : 'no-proof');
-    });
+
+      if (hasValidOtpProof(data.session.user.id)) {
+        setStatus('authenticated');
+        return;
+      }
+
+      // Phase 3 — TOTP migration: additionally accept a session that has
+      // reached Supabase's own native aal2, alongside the existing
+      // OTP-proof check above. Purely additive — an aal1-only session
+      // (password done, TOTP not yet verified) still falls through to
+      // 'no-proof' exactly as before; nothing here weakens the existing
+      // check.
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (!cancelled) {
+        setStatus(aalData?.currentLevel === 'aal2' ? 'authenticated' : 'no-proof');
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -50,7 +68,11 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (status === 'no-proof') {
-    return <Navigate to="/admin/otp" state={{ from: location }} replace />;
+    // Phase 3 — the new login flow's second-factor step lives at
+    // /admin/mfa now. The old /admin/otp route itself is untouched and
+    // still independently reachable (e.g. direct navigation), but nothing
+    // routes users there anymore as part of reaching the admin UI.
+    return <Navigate to="/admin/mfa" state={{ from: location }} replace />;
   }
 
   return children;

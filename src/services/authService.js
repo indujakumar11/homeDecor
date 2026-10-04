@@ -307,3 +307,96 @@ export async function getCurrentUser() {
   const { data } = await supabase.auth.getSession();
   return data.session?.user ?? null;
 }
+
+// ============================================================================
+// PHASE 3 — Supabase native TOTP MFA (additive, alongside the OTP flow above)
+// ============================================================================
+// Everything above this point (login(), startOtpChallenge(), verifyOtp(),
+// the OTP proof helpers, logout()'s otp_authorizations revoke call) is the
+// EXISTING Twilio/mock OTP system — untouched, still fully functional, and
+// still reachable via the old /admin/otp page if it's ever navigated to
+// directly. The functions below are a SEPARATE, parallel path used only by
+// the new login flow (LoginPage.jsx) and the new /admin/mfa page
+// (MfaVerifyPage.jsx). Nothing below writes to sessionStorage/localStorage
+// — Supabase's own session + AAL state (native MFA) is the sole source of
+// truth here, per this phase's explicit requirement.
+
+/**
+ * Password-only sign-in — deliberately does NOT call startOtpChallenge()
+ * the way login() above does. The caller (LoginPage.jsx) decides what to
+ * do next itself, based on whether the account has a verified TOTP factor
+ * (see getVerifiedTotpFactor below), rather than this function assuming
+ * the old Worker OTP flow should always run.
+ */
+export async function loginWithPassword(email, password) {
+  if (!email || !password) {
+    return { success: false, message: 'Email and password are required.' };
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
+  });
+
+  if (error || !data.session) {
+    return { success: false, message: mapSignInError(error) };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Returns the current user's verified TOTP factor, or null if they have
+ * none (including if they only have an unverified/pending one — that is
+ * deliberately never treated as sufficient). Returns null on any error
+ * too, so callers fail closed (treat it the same as "no factor").
+ */
+export async function getVerifiedTotpFactor() {
+  const { data, error } = await supabase.auth.mfa.listFactors();
+  if (error) return null;
+  const totpFactors = data?.totp ?? [];
+  return totpFactors.find((f) => f.status === 'verified') ?? null;
+}
+
+/**
+ * Starts a Supabase MFA challenge for an already-enrolled, verified TOTP
+ * factor. Never enrolls anything — the factor must already exist (see
+ * MfaSetupPage.jsx for enrollment, untouched by this phase).
+ */
+export async function createTotpChallenge(factorId) {
+  const { data, error } = await supabase.auth.mfa.challenge({ factorId });
+  if (error) {
+    return { success: false, message: error.message || 'Unable to start verification. Please try again.' };
+  }
+  return { success: true, challengeId: data.id };
+}
+
+/**
+ * Verifies a submitted TOTP code against an existing challenge, then
+ * explicitly re-checks the resulting session's assurance level rather than
+ * trusting a successful verify() call alone — aal2 is the only acceptable
+ * outcome for admin access in this phase.
+ */
+export async function verifyTotpChallenge(factorId, challengeId, code) {
+  const { error: verifyError } = await supabase.auth.mfa.verify({ factorId, challengeId, code });
+  if (verifyError) {
+    return { success: false, message: verifyError.message || 'Invalid or expired code. Please try again.' };
+  }
+
+  const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aalError || aalData?.currentLevel !== 'aal2') {
+    return {
+      success: false,
+      message: 'Verification succeeded, but the session did not reach the required security level. Please try again.',
+    };
+  }
+
+  return { success: true };
+}
+
+/** True only if the CURRENT Supabase session has actually reached aal2. */
+export async function hasAal2Session() {
+  const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (error) return false;
+  return data?.currentLevel === 'aal2';
+}
