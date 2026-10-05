@@ -102,7 +102,6 @@ const Navbar = ({ onOpenConsultation }) => {
                 <li key={link.name} className={styles.navItem}>
                   <NavLink
                     to={link.href}
-                    data-cursor="hand"
                     className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
                   >
                     {link.name}
