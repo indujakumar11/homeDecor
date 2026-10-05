@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Images, ImagePlus, LogOut, X } from 'lucide-react';
+import { Images, ImagePlus, ShieldCheck, LogOut, X } from 'lucide-react';
 import { logout } from '../../services/authService';
 import styles from './Sidebar.module.scss';
 
 const NAV_ITEMS = [
   { to: '/admin/gallery', label: 'Gallery', icon: Images },
   { to: '/admin/gallery/add', label: 'Add Decor', icon: ImagePlus },
+  { to: '/admin/security', label: 'Security', icon: ShieldCheck },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 import { loginWithPassword, isCurrentUserEnabledAdmin, getVerifiedTotpFactor } from '../../services/authService';
 import InlineAlert from '../components/InlineAlert';
@@ -85,7 +85,10 @@ const LoginPage = () => {
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="password" className={styles.label}>Password</label>
+            <div className={styles.labelRow}>
+              <label htmlFor="password" className={styles.label}>Password</label>
+              <Link to="/admin/forgot-password" className={styles.inlineLink}>Forgot password?</Link>
+            </div>
             <div className={styles.passwordFieldWrapper}>
               <input
                 id="password"

@@ -3,7 +3,7 @@ import { Navigate, useNavigate, Link } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import {
-  getVerifiedTotpFactor,
+  getVerifiedTotpFactors,
   createTotpChallenge,
   verifyTotpChallenge,
 } from '../../services/authService';
@@ -12,6 +12,7 @@ import styles from './AuthPages.module.scss';
 
 // ============================================================================
 // PHASE 3 — Supabase native TOTP MFA verification (new login flow)
+// BACKUP TOTP phase — extended to support more than one verified factor.
 // ============================================================================
 // Verifies an ALREADY-ENROLLED TOTP factor (see MfaSetupPage.jsx for
 // enrollment, untouched by this phase — this page never calls
@@ -26,14 +27,60 @@ import styles from './AuthPages.module.scss';
 // Source of truth is exclusively Supabase's own session + AAL state
 // (supabase.auth.getSession() / supabase.auth.mfa.getAuthenticatorAssuranceLevel()).
 // Nothing here is written to localStorage/sessionStorage.
+//
+// With exactly one verified factor, behavior is byte-for-byte the same as
+// before this phase: it's challenged immediately, no picker is ever shown.
+// With more than one, a factor-choice screen is inserted before the
+// challenge starts — selection is always by factor.id, never array
+// position, and only VERIFIED factors (from getVerifiedTotpFactors()) are
+// ever offered here.
 const MfaVerifyPage = () => {
   const navigate = useNavigate();
-  // 'checking' | 'no-session' | 'no-verified-factor' | 'ready' | 'verifying'
+  // 'checking' | 'no-session' | 'no-verified-factor' | 'choosing-factor' |
+  // 'starting-challenge' | 'ready' | 'verifying' | 'error'
   const [status, setStatus] = useState('checking');
   const [error, setError] = useState('');
   const [code, setCode] = useState('');
+  const [factorChoices, setFactorChoices] = useState([]);
+  const [selectedFactor, setSelectedFactor] = useState(null);
   const factorIdRef = useRef(null);
   const challengeIdRef = useRef(null);
+  // Shared by the mount effect below (which can legitimately unmount mid-
+  // flight, e.g. a fast navigation away) and the factor-picker's click
+  // handler (where the component is, by definition, still mounted) — lets
+  // the one startChallenge() implementation stay unmount-safe for both.
+  // Must reset to false on (re)mount, not just flip true on cleanup:
+  // React.StrictMode (enabled in main.jsx) mounts, cleans up, and remounts
+  // every component once in development specifically to surface this exact
+  // bug — without the reset, that synthetic cleanup would permanently wedge
+  // this ref at `true`, so startChallenge() would bail out after its first
+  // await forever and the page would stay blank with no code input.
+  const unmountedRef = useRef(false);
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => { unmountedRef.current = true; };
+  }, []);
+
+  const startChallenge = async (factor) => {
+    setError('');
+    setSelectedFactor(factor);
+    factorIdRef.current = factor.id;
+    setStatus('starting-challenge');
+
+    // A fresh challenge every time one starts — challenges are short-lived
+    // and not persisted anywhere on our side, so re-entering this step
+    // (page refresh, or picking a factor) correctly starts a new one
+    // rather than relying on component state that no longer exists.
+    const challengeResult = await createTotpChallenge(factor.id);
+    if (unmountedRef.current) return;
+    if (!challengeResult.success) {
+      setError(challengeResult.message);
+      setStatus('error');
+      return;
+    }
+    challengeIdRef.current = challengeResult.challengeId;
+    setStatus('ready');
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -50,32 +97,32 @@ const MfaVerifyPage = () => {
         return;
       }
 
-      const verifiedFactor = await getVerifiedTotpFactor();
+      const verifiedFactors = await getVerifiedTotpFactors();
       if (cancelled) return;
-      if (!verifiedFactor) {
+      if (verifiedFactors.length === 0) {
         setStatus('no-verified-factor');
         return;
       }
-      factorIdRef.current = verifiedFactor.id;
 
-      // A fresh challenge every time this page loads/reloads — challenges
-      // are short-lived and not persisted anywhere on our side, so a
-      // refresh correctly starts a new one rather than relying on
-      // component state that no longer exists.
-      const challengeResult = await createTotpChallenge(verifiedFactor.id);
-      if (cancelled) return;
-      if (!challengeResult.success) {
-        setError(challengeResult.message);
-        setStatus('error');
+      if (verifiedFactors.length > 1) {
+        // More than one verified factor — let the user choose rather than
+        // silently picking one by array position. No challenge is started
+        // until that choice is made.
+        setFactorChoices(verifiedFactors);
+        setStatus('choosing-factor');
         return;
       }
-      challengeIdRef.current = challengeResult.challengeId;
-      setStatus('ready');
+
+      // Exactly one verified factor — unchanged from the original
+      // single-factor experience.
+      if (cancelled) return;
+      await startChallenge(verifiedFactors[0]);
     })();
 
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (status === 'no-session') {
@@ -113,7 +160,7 @@ const MfaVerifyPage = () => {
           <span className={styles.brandSub}>ADMIN PORTAL</span>
         </div>
 
-        {status === 'checking' ? null : status === 'no-verified-factor' ? (
+        {status === 'checking' || status === 'starting-challenge' ? null : status === 'no-verified-factor' ? (
           <>
             <h1 className={styles.heading}>Two-factor authentication</h1>
             <InlineAlert
@@ -125,6 +172,30 @@ const MfaVerifyPage = () => {
               <Link to="/admin/mfa-setup">Set up authenticator app</Link>
             </p>
           </>
+        ) : status === 'choosing-factor' ? (
+          <>
+            <h1 className={styles.heading}>Two-factor authentication</h1>
+            <p className={styles.subheading}>Choose an authenticator to continue.</p>
+
+            <InlineAlert type="error" message={error} className={styles.alert} />
+
+            <div className={styles.factorChoiceList}>
+              {factorChoices.map((factor) => (
+                <button
+                  key={factor.id}
+                  type="button"
+                  className={styles.factorChoiceBtn}
+                  onClick={() => startChallenge(factor)}
+                >
+                  {factor.friendly_name || 'Authenticator'}
+                </button>
+              ))}
+            </div>
+
+            <p className={styles.hint}>
+              <Link to="/admin/login">Back to login</Link>
+            </p>
+          </>
         ) : status === 'error' ? (
           <>
             <h1 className={styles.heading}>Two-factor authentication</h1>
@@ -133,7 +204,11 @@ const MfaVerifyPage = () => {
         ) : (
           <>
             <h1 className={styles.heading}>Two-factor authentication</h1>
-            <p className={styles.subheading}>Enter the 6-digit code from Google Authenticator.</p>
+            <p className={styles.subheading}>
+              {factorChoices.length > 1 && selectedFactor?.friendly_name
+                ? `Enter the 6-digit code from ${selectedFactor.friendly_name}.`
+                : 'Enter the 6-digit code from Google Authenticator.'}
+            </p>
 
             <InlineAlert type="error" message={error} className={styles.alert} />
 

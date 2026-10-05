@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, QrCode, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { isCurrentUserEnabledAdmin } from '../../services/authService';
+import { isCurrentUserEnabledAdmin, enrollBackupTotpFactor, unenrollTotpFactor } from '../../services/authService';
 import InlineAlert from '../components/InlineAlert';
 import styles from './AuthPages.module.scss';
 
 // ============================================================================
-// Admin TOTP enrollment — client first-time setup (Phase 6B)
+// Admin TOTP enrollment — client first-time setup (Phase 6B) +
+// backup-authenticator enrollment (BACKUP TOTP phase)
 // ============================================================================
 // Originated in Phase 2 as a throwaway test harness; now the real,
 // production first-time-setup page an enabled admin is routed to by
@@ -26,6 +27,17 @@ import styles from './AuthPages.module.scss';
 // "unauthorized" message, never the QR code, secret, or enrollment UI.
 // TOTP enrollment itself still does not grant admin authorization — the
 // Worker and RLS independently and exclusively decide that, unchanged.
+//
+// BACKUP TOTP phase: this same page now also serves a second mode, entered
+// via the `?mode=add` query param (from SecuritySettingsPage.jsx's "Add
+// authenticator" button). In that mode, an existing VERIFIED factor is the
+// expected normal case (the primary) rather than a stop condition, and a
+// brand-new, independent factor is enrolled via enrollBackupTotpFactor() —
+// a fresh Supabase-generated secret, never the primary's. The admin gate,
+// QR/secret display, challenge/verify, and explicit AAL2 confirmation below
+// are identical code paths for both modes; only what happens around an
+// existing verified factor, and where the page navigates to on success,
+// differs.
 // ============================================================================
 
 function mapMfaError(error) {
@@ -38,9 +50,12 @@ function mapMfaError(error) {
 
 const MfaSetupPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Mode 2 (add backup) vs mode 1 (first-time setup) — see header comment.
+  const isAddMode = searchParams.get('mode') === 'add';
   // 'checking' | 'no-session' | 'not-admin' | 'loading-factors' |
   // 'already-verified' | 'pending-factor-found' | 'enrolling' |
-  // 'awaiting-code' | 'verifying' | 'verified' | 'error'
+  // 'awaiting-code' | 'verifying' | 'verified' | 'cancelling' | 'error'
   const [status, setStatus] = useState('checking');
   const [error, setError] = useState('');
 
@@ -56,11 +71,15 @@ const MfaSetupPage = () => {
 
   const [assuranceResult, setAssuranceResult] = useState(null);
 
+  // Mode 1 — first-time setup: the account's PRIMARY factor.
   const startEnrollment = async () => {
     setStatus('enrolling');
     setError('');
     try {
-      const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+      const { data, error: enrollError } = await supabase.auth.mfa.enroll({
+        factorType: 'totp',
+        friendlyName: 'Primary authenticator',
+      });
       if (enrollError) {
         setError(mapMfaError(enrollError));
         setStatus('error');
@@ -75,6 +94,26 @@ const MfaSetupPage = () => {
       setError('Network error while starting enrollment. Please check your connection and try again.');
       setStatus('error');
     }
+  };
+
+  // Mode 2 — add backup: a brand-new, independent factor. Supabase
+  // generates its own fresh secret server-side (see authService.js's
+  // enrollBackupTotpFactor()) — the primary factor's secret is never read
+  // or reused.
+  const startBackupEnrollment = async () => {
+    setStatus('enrolling');
+    setError('');
+    const result = await enrollBackupTotpFactor();
+    if (!result.success) {
+      setError(result.message);
+      setStatus('error');
+      return;
+    }
+    setFactorId(result.factorId);
+    setQrCode(result.qrCode);
+    setSecret(result.secret);
+    setOtpauthUri(result.otpauthUri);
+    setStatus('awaiting-code');
   };
 
   useEffect(() => {
@@ -119,24 +158,39 @@ const MfaSetupPage = () => {
       }
 
       const totpFactors = factorsData?.totp ?? [];
-      const verifiedFactor = totpFactors.find((f) => f.status === 'verified');
-      if (verifiedFactor) {
-        // A verified factor already exists — per Phase 2's explicit safety
-        // rule, we never call enroll() again automatically in this case.
-        setExistingFactor(verifiedFactor);
-        setStatus('already-verified');
+
+      // A pending, never-completed enrollment (of EITHER mode — a prior
+      // abandoned primary setup or a prior abandoned backup attempt)
+      // exists from an earlier attempt. Supabase has no API to re-fetch
+      // that factor's QR/secret (enroll() only ever returns it once, at
+      // creation time), so it can't be resumed — only explained. We do NOT
+      // auto-start a new enrollment here; the admin must explicitly
+      // choose to (and can also remove it from Security Settings instead —
+      // see unenrollTotpFactor()). Checked before the mode branch below so
+      // a leftover pending factor is never silently buried under a second
+      // one.
+      const unverifiedFactor = totpFactors.find((f) => f.status === 'unverified');
+      if (unverifiedFactor) {
+        setPendingFactor(unverifiedFactor);
+        setStatus('pending-factor-found');
         return;
       }
 
-      const unverifiedFactor = totpFactors.find((f) => f.status === 'unverified');
-      if (unverifiedFactor) {
-        // A pending, never-completed enrollment exists from an earlier
-        // attempt. Supabase has no API to re-fetch that factor's QR/secret
-        // (enroll() only ever returns it once, at creation time), so it
-        // can't be resumed — only explained. We do NOT auto-start a new
-        // enrollment here; the admin must explicitly choose to.
-        setPendingFactor(unverifiedFactor);
-        setStatus('pending-factor-found');
+      if (isAddMode) {
+        // Mode 2: an existing verified factor (the primary) is the
+        // expected, normal case here — never a stop condition. Go straight
+        // to enrolling a new, independent backup factor.
+        await startBackupEnrollment();
+        return;
+      }
+
+      const verifiedFactor = totpFactors.find((f) => f.status === 'verified');
+      if (verifiedFactor) {
+        // Mode 1 only: a verified factor already exists — per Phase 2's
+        // explicit safety rule, we never call enroll() again automatically
+        // in this case.
+        setExistingFactor(verifiedFactor);
+        setStatus('already-verified');
         return;
       }
 
@@ -196,13 +250,55 @@ const MfaSetupPage = () => {
       setStatus('verified');
       // Brief confirmation beat (matches this project's existing
       // save-success-then-navigate convention, e.g. EditImagePage.jsx)
-      // before continuing to the admin dashboard — ProtectedRoute
-      // independently re-verifies everything on arrival regardless.
-      setTimeout(() => navigate('/admin/gallery', { replace: true }), 1200);
+      // before continuing on — ProtectedRoute independently re-verifies
+      // everything on arrival regardless. Mode 2 returns to Security
+      // Settings (where the newly-verified backup factor will now show
+      // up via a fresh listTotpFactors() call); mode 1 continues into the
+      // admin dashboard exactly as before.
+      setTimeout(() => {
+        if (isAddMode) {
+          navigate('/admin/security', { replace: true, state: { justAdded: true } });
+        } else {
+          navigate('/admin/gallery', { replace: true });
+        }
+      }, 1200);
     } catch {
       setError('Network error during verification. Please check your connection and try again.');
       setStatus('awaiting-code');
     }
+  };
+
+  // BACKUP TOTP CLEANUP — the fix for this phase. Only ever relevant in
+  // add mode: mode 1 (first-time primary setup) must keep its existing
+  // behavior exactly as-is (an abandoned primary enrollment is left in
+  // place, same as before — see the "pending-factor-found" branch above),
+  // per this phase's explicit requirement not to touch that flow.
+  //
+  // Only attempts cleanup when status is EXACTLY 'awaiting-code' — i.e. a
+  // factor from THIS CURRENT enroll() call exists and no verify attempt
+  // has been submitted for it yet. Deliberately excludes 'verifying'
+  // (a verify() call may already be in flight for this exact factor; a
+  // concurrent unenroll() could otherwise race a successful verification
+  // and delete a factor that just became verified — see the
+  // IMPORTANT FACTOR ID SAFETY discussion in this phase's report) and
+  // 'verified' (nothing to clean up — the factor is done and must be kept).
+  // unenrollTotpFactor() itself re-checks the factor's CURRENT server-side
+  // status before doing anything, so even this is defense in depth, not
+  // the only guard.
+  const handleExit = async () => {
+    const target = isAddMode ? '/admin/security' : '/admin/gallery';
+
+    if (isAddMode && factorId && status === 'awaiting-code') {
+      setStatus('cancelling');
+      const result = await unenrollTotpFactor(factorId);
+      if (!result.success) {
+        setError(result.message);
+        setStatus('awaiting-code');
+        return;
+      }
+    }
+
+    navigate(target, { replace: true });
   };
 
   if (status === 'no-session') {
@@ -230,11 +326,12 @@ const MfaSetupPage = () => {
           <span className={styles.brandSub}>ADMIN PORTAL</span>
         </div>
 
-        <h1 className={styles.heading}>Set up your authenticator</h1>
+        <h1 className={styles.heading}>{isAddMode ? 'Add a backup authenticator' : 'Set up your authenticator'}</h1>
         {status !== 'not-admin' && (
           <p className={styles.subheading}>
-            Your admin account requires two-factor authentication. Use an authenticator app such as Google
-            Authenticator or Microsoft Authenticator.
+            {isAddMode
+              ? 'Set up a second authenticator app as a backup. Either one can be used to sign in, so losing one device will not lock you out.'
+              : 'Your admin account requires two-factor authentication. Use an authenticator app such as Google Authenticator or Microsoft Authenticator.'}
           </p>
         )}
 
@@ -242,6 +339,10 @@ const MfaSetupPage = () => {
 
         {(status === 'checking' || status === 'loading-factors' || status === 'enrolling') && (
           <p className={styles.subheading}>Loading…</p>
+        )}
+
+        {status === 'cancelling' && (
+          <p className={styles.subheading}>Cancelling…</p>
         )}
 
         {status === 'not-admin' && (
@@ -282,10 +383,14 @@ const MfaSetupPage = () => {
               Factor ID: <strong>{pendingFactor.id}</strong>. Supabase does not allow re-displaying that factor's QR
               code — if you still have it scanned in your authenticator app, you won't be able to complete it here.
               Starting a fresh enrollment below leaves the old pending factor in place (harmless — it never reaches
-              &quot;verified&quot; and grants nothing) rather than deleting it; this page does not implement factor
-              deletion.
+              &quot;verified&quot; and grants nothing); it can be removed from Security Settings → Authenticator
+              factors at any time.
             </p>
-            <button type="button" className={styles.submitBtn} onClick={startEnrollment}>
+            <button
+              type="button"
+              className={styles.submitBtn}
+              onClick={isAddMode ? startBackupEnrollment : startEnrollment}
+            >
               <QrCode size={16} />
               <span>Start a new enrollment</span>
             </button>
@@ -345,11 +450,17 @@ const MfaSetupPage = () => {
 
         {status === 'verified' && (
           <>
-            <InlineAlert type="success" message="Authenticator setup successful" className={styles.alert} />
+            <InlineAlert
+              type="success"
+              message={isAddMode ? 'Backup authenticator added' : 'Authenticator setup successful'}
+              className={styles.alert}
+            />
             <p className={styles.subheading}>
               Security level: <strong>{assuranceResult?.currentLevel ?? 'unknown'}</strong>
             </p>
-            <p className={styles.subheading}>Taking you to the admin dashboard…</p>
+            <p className={styles.subheading}>
+              {isAddMode ? 'Taking you back to Security settings…' : 'Taking you to the admin dashboard…'}
+            </p>
           </>
         )}
 
@@ -359,6 +470,23 @@ const MfaSetupPage = () => {
               <ArrowLeft size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
               Back to login
             </Link>
+          </p>
+        ) : isAddMode ? (
+          // Mode 2 only — a button, not a plain Link, because leaving this
+          // page while the backup factor created by THIS attempt is still
+          // unverified must first unenroll it (see handleExit above). Mode
+          // 1 (the `else` branch below) stays a plain, unchanged Link:
+          // first-time primary setup must never attempt this cleanup.
+          <p className={styles.hint}>
+            <button
+              type="button"
+              className={styles.hintLinkBtn}
+              onClick={handleExit}
+              disabled={status === 'cancelling'}
+            >
+              <ArrowLeft size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
+              Return to Security settings
+            </button>
           </p>
         ) : (
           <p className={styles.hint}>

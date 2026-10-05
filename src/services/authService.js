@@ -45,7 +45,7 @@
  * policies can require it independently of ProtectedRoute/the Worker.
  * ============================================================================
  */
-import { supabase } from '../lib/supabase';
+import { supabase, createReauthClient } from '../lib/supabase';
 
 const WORKER_URL = import.meta.env.VITE_WORKER_URL || 'http://localhost:8787';
 const OTP_PROOF_KEY = 'hd_admin_otp_proof';
@@ -434,4 +434,315 @@ export async function isCurrentUserEnabledAdmin() {
   const { data, error } = await supabase.rpc('is_enabled_admin');
   if (error) return false;
   return data === true;
+}
+
+// ============================================================================
+// BACKUP TOTP AUTHENTICATOR (additive — see audit report for this phase)
+// ============================================================================
+// Everything below is purely additive on top of the Phase 3 TOTP functions
+// above (createTotpChallenge/verifyTotpChallenge/getVerifiedTotpFactor,
+// unchanged, still used as-is for the single-factor case). These let an
+// account have a SECOND, independent Supabase TOTP factor ("backup") without
+// touching the Worker or RLS at all — both already authorize purely on the
+// session's `aal` claim + admin_users.enabled, never on which factor
+// produced that claim (confirmed by reading worker/src/index.ts's
+// tryAal2AdminAuthorization and migration 008's RLS policies).
+
+/**
+ * All of the current user's VERIFIED totp factors (plural — unlike
+ * getVerifiedTotpFactor() above, which intentionally returns only the
+ * first one for the existing single-factor call sites).
+ *
+ * Deliberately filters `data.all` by factor_type/status itself rather than
+ * trusting `data.totp` to already be verified-only: the installed
+ * @supabase/auth-js@2.112.4 types declare `data.totp` as
+ * `Factor<'totp', 'verified'>[]`, but getVerifiedTotpFactor() above has
+ * always re-checked `status === 'verified'` at runtime regardless — that
+ * existing defensiveness is kept and applied here too rather than trusting
+ * the type.
+ */
+export async function getVerifiedTotpFactors() {
+  const { data, error } = await supabase.auth.mfa.listFactors();
+  if (error) return [];
+  const all = data?.all ?? [];
+  return all.filter((f) => f.factor_type === 'totp' && f.status === 'verified');
+}
+
+/**
+ * Every TOTP factor on the current user's account, verified or not, for
+ * display on the Security settings page. Returns exactly the fields
+ * Supabase provides on a Factor (id, friendly_name, factor_type, status,
+ * created_at, updated_at, last_challenged_at) — nothing invented, no
+ * secret ever included (listFactors() never returns one).
+ */
+export async function listTotpFactors() {
+  const { data, error } = await supabase.auth.mfa.listFactors();
+  if (error) return [];
+  const all = data?.all ?? [];
+  return all.filter((f) => f.factor_type === 'totp');
+}
+
+/**
+ * Enrolls a brand-new, independent TOTP factor labeled "Backup
+ * authenticator" — Supabase generates a fresh secret server-side; this
+ * never reads, reuses, or displays any existing factor's secret (it has no
+ * way to — listFactors() never returns one). Returns the same shape
+ * MfaSetupPage.jsx already uses for the primary-factor enrollment UI, so
+ * both modes can share one QR/secret render path.
+ */
+export async function enrollBackupTotpFactor() {
+  const { data, error } = await supabase.auth.mfa.enroll({
+    factorType: 'totp',
+    friendlyName: 'Backup authenticator',
+  });
+
+  if (error) {
+    return {
+      success: false,
+      message: error.message || 'Unable to start backup authenticator setup. Please try again.',
+    };
+  }
+
+  return {
+    success: true,
+    factorId: data.id,
+    qrCode: data.totp?.qr_code ?? null,
+    secret: data.totp?.secret ?? null,
+    otpauthUri: data.totp?.uri ?? null,
+  };
+}
+
+/**
+ * Removes a TOTP factor, but first re-fetches the CURRENT factor list from
+ * Supabase and recomputes the verified count itself — it never trusts a
+ * caller-supplied count or whatever the UI last rendered, specifically to
+ * stay correct if another tab/device changed something in between (see
+ * audit report edge cases 1-2). An unverified/pending factor can always be
+ * removed (it grants no access). A verified factor can only be removed if
+ * at least one OTHER verified factor will remain — this is the only place
+ * in the app that enforces "never zero verified factors," since Supabase
+ * itself has no such rule (it only requires the CALLER'S session to already
+ * be aal2 before unenrolling any verified factor — a separate, server-side
+ * check this function doesn't need to duplicate).
+ *
+ * Returns a result object (matching every other function in this file)
+ * rather than throwing, so callers can render the message with the same
+ * InlineAlert pattern used everywhere else — the "clear error" the caller
+ * sees either way.
+ */
+export async function unenrollTotpFactor(factorId) {
+  if (!factorId) {
+    return { success: false, message: 'Missing authenticator id.' };
+  }
+
+  const { data, error: listError } = await supabase.auth.mfa.listFactors();
+  if (listError) {
+    return {
+      success: false,
+      message: listError.message || 'Unable to check current authenticators. Please try again.',
+    };
+  }
+
+  const all = data?.all ?? [];
+  const target = all.find((f) => f.id === factorId && f.factor_type === 'totp');
+
+  if (!target) {
+    // Already gone — e.g. removed from another tab between this page's
+    // load and this click. Nothing to do; the caller should just refresh
+    // its list, which will already reflect this.
+    return { success: true, alreadyRemoved: true };
+  }
+
+  if (target.status === 'verified') {
+    const verifiedCount = all.filter((f) => f.factor_type === 'totp' && f.status === 'verified').length;
+    if (verifiedCount <= 1) {
+      return {
+        success: false,
+        message: 'At least one verified authenticator must remain. Add another authenticator before removing this one.',
+      };
+    }
+  }
+
+  // Supabase's own server-side response is authoritative from here —
+  // including its independent rule that a verified factor can only be
+  // unenrolled from an already-aal2 session (see @supabase/auth-js's own
+  // unenroll() doc comment), which this function does not need to
+  // duplicate.
+  const { error: unenrollError } = await supabase.auth.mfa.unenroll({ factorId });
+  if (unenrollError) {
+    return {
+      success: false,
+      message: unenrollError.message || 'Unable to remove this authenticator. Please try again.',
+    };
+  }
+
+  return { success: true };
+}
+
+// ============================================================================
+// FORGOT PASSWORD / CHANGE PASSWORD
+// ============================================================================
+// Both paths use only Supabase Auth's own built-in password-recovery and
+// user-update APIs — there is no custom token, no custom email, and
+// nothing password-related is ever stored by this app (not in a table, not
+// in localStorage/sessionStorage, never logged, never sent to the Worker).
+// Neither path touches admin_users, TOTP factors, or AAL in a way that
+// weakens them — see the per-function notes below for exactly how each one
+// avoids that.
+//
+// HASH-ROUTER COMPATIBILITY NOTE (read before changing the redirect below):
+// This app's router is a HashRouter (see App.jsx) and the installed
+// @supabase/auth-js@2.112.4 defaults (confirmed by reading its source,
+// nothing overridden in lib/supabase.js) are `flowType: 'implicit'` and
+// `detectSessionInUrl: true` — meaning a recovery link redirects back here
+// with the new session's tokens appended to the URL as a HASH fragment
+// (e.g. `#access_token=...&type=recovery`). If `redirectTo` already
+// contained our own `#/admin/...` route path, the browser would only ever
+// recognize the FIRST `#` in the URL — everything after it, including
+// Supabase's own appended `#access_token=...`, becomes one single opaque
+// fragment string. Tracing auth-js's own parseParametersFromURL (splits
+// the fragment on `&`/`=`) confirms this corrupts the `access_token` key
+// into `/admin/reset-password#access_token`, so `_isImplicitGrantCallback`
+// never finds it and Supabase silently never establishes the recovery
+// session at all. So requestPasswordReset() below redirects to the bare
+// site origin (no path) instead — only one `#` ever exists in that URL —
+// and the onAuthStateChange listener a few lines down is what actually
+// gets the user to /admin/reset-password, by reacting to Supabase's own
+// `PASSWORD_RECOVERY` event (emitted only once it has successfully parsed
+// the tokens and established the session) rather than relying on the URL
+// path surviving the redirect at all.
+if (typeof window !== 'undefined') {
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      window.location.hash = '#/admin/reset-password';
+    }
+  });
+}
+
+const EMAIL_FORMAT_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Requests a password-reset email for the given address via Supabase
+ * Auth's own resetPasswordForEmail() — no custom token/email logic.
+ * Deliberately returns the SAME generic success message whether or not
+ * the address belongs to an account (admin or otherwise): Supabase's own
+ * API already doesn't distinguish "no such user" from "sent" in its
+ * response, and this function doesn't either, so neither this UI nor any
+ * error path it takes can be used to probe which emails exist.
+ */
+export async function requestPasswordReset(email) {
+  const trimmed = (email || '').trim();
+  if (!trimmed) {
+    return { success: false, message: 'Email is required.' };
+  }
+  if (!EMAIL_FORMAT_RE.test(trimmed)) {
+    // A pure syntax check applied identically to ANY input before any
+    // network call — reveals nothing about whether an account exists.
+    return { success: false, message: 'Enter a valid email address.' };
+  }
+
+  const GENERIC_SUCCESS = {
+    success: true,
+    message: 'If an account exists for this email address, a password reset link has been sent.',
+  };
+
+  try {
+    // No path in redirectTo — see the HASH-ROUTER COMPATIBILITY NOTE above.
+    await supabase.auth.resetPasswordForEmail(trimmed, {
+      redirectTo: `${window.location.origin}/`,
+    });
+  } catch {
+    // A genuine network-level failure (e.g. fully offline). Still nothing
+    // Supabase-specific is surfaced, but this is distinct enough from "no
+    // such account" that a plain retry prompt is more honest and more
+    // useful than the generic message.
+    return { success: false, message: 'Network error. Please check your connection and try again.' };
+  }
+
+  // Any OTHER outcome — sent, rate-limited, no such user, etc. — gets the
+  // same generic message. Supabase's own resetPasswordForEmail() already
+  // returns { error: null } for a non-existent email for this exact reason;
+  // this function does not add a path that would leak more than Supabase
+  // itself already chooses not to.
+  return GENERIC_SUCCESS;
+}
+
+/**
+ * Sets a new password for the CURRENT session — used by both
+ * ResetPasswordPage.jsx (a Supabase-established recovery session, reached
+ * via the PASSWORD_RECOVERY flow above) and, indirectly, changePassword()
+ * below. Confirmed by reading auth-js's _updateUser(): it patches the
+ * existing session's `.user` field and re-saves the SAME access/refresh
+ * token pair — it never mints a new session via a fresh grant, so it
+ * cannot change the session's aal either way. Whether that matters depends
+ * on the caller: a recovery session is aal1 by nature (no TOTP was ever
+ * involved in creating it), which is exactly why ResetPasswordPage.jsx
+ * signs the user out after calling this rather than letting them into the
+ * dashboard on it.
+ */
+export async function updatePassword(newPassword) {
+  if (!newPassword) {
+    return { success: false, message: 'Password is required.' };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) {
+    // Supabase's own update-user error messages are plain, user-facing,
+    // non-secret strings (e.g. "Password should be at least 6 characters")
+    // — same precedent as mapMfaError() for the MFA pages — safe to surface
+    // directly.
+    return { success: false, message: error.message || 'Unable to update password. Please try again.' };
+  }
+  return { success: true };
+}
+
+/**
+ * Changes the CURRENTLY SIGNED-IN admin's password, first verifying
+ * `currentPassword` is actually correct. supabase.auth.updateUser({
+ * password }) has no concept of "the old password" — it only requires an
+ * already-authenticated session — so without an explicit check here,
+ * anyone with access to an already-open, unattended admin tab could
+ * silently take over the account.
+ *
+ * The verification itself runs on a throwaway client (createReauthClient())
+ * rather than the shared `supabase` instance specifically because
+ * signInWithPassword() always REPLACES the caller's current session with
+ * a fresh one, and a fresh password-only sign-in is only ever aal1 — doing
+ * that against the admin's real, already-aal2 session would silently
+ * downgrade it back to aal1 just to check a password, which this project's
+ * AAL2 model must never do (see Phase 4/5A's Worker/RLS aal2 requirement).
+ * The real admin session in `supabase` is never touched by the check; only
+ * a successful check is allowed to proceed to the real updateUser() call
+ * below, which (per updatePassword()'s own note) cannot change the real
+ * session's aal either.
+ */
+export async function changePassword(currentPassword, newPassword) {
+  if (!currentPassword || !newPassword) {
+    return { success: false, message: 'Current and new password are required.' };
+  }
+
+  const currentUser = await getCurrentUser();
+  if (!currentUser?.email) {
+    return { success: false, message: 'Your session has expired. Please log in again.' };
+  }
+
+  const reauthClient = createReauthClient();
+  const { error: reauthError } = await reauthClient.auth.signInWithPassword({
+    email: currentUser.email,
+    password: currentPassword,
+  });
+  // Best-effort revoke of the throwaway session's own refresh token
+  // server-side. This client was never persisted to storage, so skipping
+  // this on failure is harmless either way.
+  try {
+    await reauthClient.auth.signOut();
+  } catch {
+    // non-fatal
+  }
+
+  if (reauthError) {
+    return { success: false, message: 'Current password is incorrect.' };
+  }
+
+  return updatePassword(newPassword);
 }

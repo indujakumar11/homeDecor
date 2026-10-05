@@ -83,6 +83,24 @@
   color: var(--admin-text-main);
 }
 
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.inlineLink {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--admin-gold-dark);
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--admin-gold);
+  }
+}
+
 .input {
   width: 100%;
   background: var(--admin-surface);
@@ -167,6 +185,51 @@
   &:hover:not(:disabled) {
     background: var(--admin-gold-dark);
   }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.factorChoiceList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.factorChoiceBtn {
+  width: 100%;
+  text-align: left;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  padding: 0.75rem 0.9rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+  cursor: pointer;
+  transition: border-color var(--admin-transition), background var(--admin-transition);
+
+  &:hover {
+    border-color: var(--admin-gold);
+    background: var(--admin-surface-alt);
+  }
+}
+
+// Reset to look identical to the plain-text Link it sits alongside in
+// .hint (global.scss's `a { color: inherit; text-decoration: none; }`) —
+// used where the exit action needs an onClick (see MfaSetupPage.jsx's
+// backup-cancellation handler) rather than a plain route change.
+.hintLinkBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
 
   &:disabled {
     opacity: 0.6;

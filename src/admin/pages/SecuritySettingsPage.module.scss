@@ -1,0 +1,277 @@
+@use '../styles/admin-variables' as *;
+
+// Same dark-theme override pattern as GalleryManagementPage.module.scss —
+// redefines the admin tokens for everything inside this wrapper (including
+// ConfirmDialog, which renders inside it) so this page matches the rest of
+// the authenticated admin shell.
+.fullscreenWrap {
+  --admin-surface: #161514;
+  --admin-surface-alt: #1e1c1a;
+  --admin-border: rgba(255, 255, 255, 0.12);
+  --admin-text-main: #f2ede3;
+  --admin-text-muted: #a39e93;
+  --admin-text-dim: #706b60;
+  --admin-danger-bg: rgba(192, 57, 43, 0.16);
+  --admin-danger-border: rgba(192, 57, 43, 0.4);
+  --admin-success-bg: rgba(30, 126, 52, 0.16);
+  --admin-success-border: rgba(30, 126, 52, 0.4);
+
+  flex: 1;
+  min-height: 100vh;
+  width: 100%;
+  background: #0a0a0a;
+  background-image: radial-gradient(circle at 50% 0%, rgba(181, 138, 60, 0.06) 0%, transparent 55%);
+  padding: 1.75rem;
+}
+
+// The dark background above fills the whole content area (so there's no
+// bare admin-bg gap next to it); the actual content is capped to a
+// comfortable reading width and centered within that, rather than hugging
+// the left edge with empty space to the right.
+.inner {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-family: var(--font-sans);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+  margin-bottom: 0.35rem;
+}
+
+.subtitle {
+  font-size: 0.88rem;
+  color: var(--admin-text-muted);
+  line-height: 1.5;
+}
+
+.toast {
+  margin-bottom: 1.25rem;
+}
+
+.centeredState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 1.5rem;
+  color: var(--admin-text-muted);
+  text-align: center;
+}
+
+.spinIcon {
+  animation: securitySettingsSpin 0.8s linear infinite;
+  color: var(--admin-gold-dark);
+}
+
+@keyframes securitySettingsSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.retryBtn {
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--admin-gold-dark);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.sectionLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--admin-text-dim);
+  margin-bottom: 0.75rem;
+}
+
+.factorList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  list-style: none;
+  margin-bottom: 1.25rem;
+}
+
+.emptyState {
+  color: var(--admin-text-muted);
+  font-size: 0.88rem;
+  padding: 1rem 0;
+}
+
+.factorCard {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  padding: 1rem 1.1rem;
+}
+
+.factorInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.verifiedIcon {
+  color: var(--admin-success);
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+.unverifiedIcon {
+  color: var(--admin-text-dim);
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+.factorName {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+}
+
+.statusVerified {
+  font-size: 0.8rem;
+  color: var(--admin-success);
+  margin-top: 0.15rem;
+}
+
+.statusUnverified {
+  font-size: 0.8rem;
+  color: var(--admin-text-dim);
+  margin-top: 0.15rem;
+}
+
+.metaDate {
+  font-size: 0.76rem;
+  color: var(--admin-text-dim);
+  margin-top: 0.3rem;
+}
+
+.factorActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  max-width: 180px;
+}
+
+.removeBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: 1px solid var(--admin-danger-border);
+  border-radius: var(--admin-radius);
+  color: var(--admin-danger);
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--admin-transition), opacity var(--admin-transition);
+
+  &:hover:not(:disabled) {
+    background: var(--admin-danger-bg);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.lastFactorNote {
+  font-size: 0.74rem;
+  color: var(--admin-text-dim);
+  line-height: 1.4;
+  text-align: right;
+}
+
+.addBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: var(--admin-gold);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--admin-radius);
+  padding: 0.8rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--admin-transition);
+
+  &:hover {
+    background: var(--admin-gold-dark);
+  }
+}
+
+.passwordSection {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.passwordHint {
+  font-size: 0.86rem;
+  color: var(--admin-text-muted);
+  margin: 0.35rem 0 0.9rem;
+}
+
+.changePasswordBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text-main);
+  border-radius: var(--admin-radius);
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--admin-transition), background var(--admin-transition);
+
+  &:hover {
+    border-color: var(--admin-gold);
+    background: var(--admin-surface-alt);
+  }
+}
+
+@media (max-width: 560px) {
+  .factorCard {
+    flex-direction: column;
+  }
+
+  .factorActions {
+    align-items: flex-start;
+    max-width: none;
+    width: 100%;
+  }
+
+  .lastFactorNote {
+    text-align: left;
+  }
+}
