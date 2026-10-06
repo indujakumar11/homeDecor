@@ -147,6 +147,7 @@ const Footer = ({ onOpenConsultation }) => {
                 aria-label="Call Black Shades at +91 97908 38319"
               >
                 <Phone size={16} className={styles.fIcon} />
+                <span>+91 97908 38319</span>
               </a>
 
               <a href="mailto:blackshadeshomedecors@gmail.com" className={styles.footerContactItem}>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, Clock, Shield } from 'lucide-react';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
+import { openWhatsApp } from '../../config/contact';
 import styles from './Contact.module.scss';
 
 const PROJECT_TYPES = [
@@ -16,6 +17,17 @@ const PROJECT_TYPES = [
   'Other Bespoke Requirements'
 ];
 
+// The WhatsApp message for a project enquiry.
+const buildEnquiryMessage = (data) => [
+  'Hello Black Shades Home Decors, I would like to make a project enquiry.',
+  '',
+  `Name: ${data.name.trim()}`,
+  `Phone: ${data.phone.trim()}`,
+  `Email: ${data.email.trim()}`,
+  `Service: ${data.projectType}`,
+  `Project Details: ${data.message.trim()}`,
+].join('\n');
+
 const Contact = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -26,7 +38,6 @@ const Contact = () => {
   });
 
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const gridRef = useScrollReveal({ selector: `.${styles.contactInfoCol}, .${styles.contactFormCol}`, y: 24, stagger: 0.15 });
 
@@ -71,23 +82,23 @@ const Contact = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    setIsSubmitting(true);
-    // Simulate frontend form submission
+    if (!openWhatsApp(buildEnquiryMessage(formData))) {
+      setErrors({ submit: 'Sending via WhatsApp is unavailable right now. Please call or email us directly.' });
+      return;
+    }
+
+    setSubmitSuccess(true);
+    setFormData({
+      name: '',
+      phone: '',
+      email: '',
+      projectType: 'Custom Murals & Relief Walls',
+      message: ''
+    });
+    // Auto-hide success after 7 seconds
     setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmitSuccess(true);
-      setFormData({
-        name: '',
-        phone: '',
-        email: '',
-        projectType: 'Custom Murals & Relief Walls',
-        message: ''
-      });
-      // Auto-hide success after 7 seconds
-      setTimeout(() => {
-        setSubmitSuccess(false);
-      }, 7000);
-    }, 600);
+      setSubmitSuccess(false);
+    }, 7000);
   };
 
   return (
@@ -161,7 +172,7 @@ const Contact = () => {
                   <CheckCircle2 size={22} className={styles.alertIcon} />
                   <div>
                     <strong>Thank you for contacting Black Shades Home Decors!</strong>
-                    <p>Your enquiry has been received. Our senior design specialist will connect with you promptly at your provided contact number.</p>
+                    <p>We've opened WhatsApp with your enquiry details — tap Send there to complete your enquiry.</p>
                   </div>
                 </div>
               )}
@@ -274,14 +285,19 @@ const Contact = () => {
                   )}
                 </div>
 
+                {errors.submit && (
+                  <span className={styles.errorMessage}>
+                    <AlertCircle size={13} /> {errors.submit}
+                  </span>
+                )}
+
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={isSubmitting}
                   className={`btn btn-primary-gold ${styles.submitBtn}`}
                 >
                   <Send size={16} />
-                  <span>{isSubmitting ? 'PROCESSING...' : 'SEND ENQUIRY'}</span>
+                  <span>SEND ENQUIRY</span>
                 </button>
               </form>
             </div>

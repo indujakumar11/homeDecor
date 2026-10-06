@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar, CheckCircle2, Phone, Mail, Clock, AlertCircle } from 'lucide-react';
 import { getLenis } from '../../lib/smoothScroll';
 import { lockScroll, unlockScroll } from '../../lib/scrollLock';
+import { openWhatsApp } from '../../config/contact';
 import styles from './ConsultationModal.module.scss';
 
 const SERVICES_LIST = [
@@ -16,20 +17,47 @@ const SERVICES_LIST = [
   'Concept to Completion Turnkey Projects'
 ];
 
+// <input type="date"> gives "YYYY-MM-DD"; built from parts (not new Date(str))
+// so it isn't shifted a day by UTC parsing.
+const formatDate = (value) => {
+  const [y, m, d] = value.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+// The WhatsApp message for a consultation request. Optional fields are only
+// included when the visitor filled them in.
+const buildConsultationMessage = (data) => {
+  const lines = [
+    'Hello Black Shades Home Decors, I would like to book a design consultation.',
+    '',
+    `Name: ${data.name.trim()}`,
+    `Phone: ${data.phone.trim()}`,
+    `Email: ${data.email.trim()}`,
+    `Service: ${data.service}`,
+  ];
+  if (data.preferredDate) lines.push(`Preferred Date: ${formatDate(data.preferredDate)}`);
+  if (data.location.trim()) lines.push(`Location: ${data.location.trim()}`);
+  if (data.notes.trim()) lines.push(`Notes: ${data.notes.trim()}`);
+  return lines.join('\n');
+};
+
+const emptyForm = (service) => ({
+  name: '',
+  phone: '',
+  email: '',
+  service: service || 'Custom Murals & Relief Walls',
+  preferredDate: '',
+  location: '',
+  notes: ''
+});
+
 const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    service: defaultService || 'Custom Murals & Relief Walls',
-    preferredDate: '',
-    location: '',
-    notes: ''
-  });
+  const [formData, setFormData] = useState(() => emptyForm(defaultService));
 
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  // The form is cleared on submit, so the success message keeps its own copy.
+  const [submittedName, setSubmittedName] = useState('');
   // Only release the shared scroll lock if this modal is the one holding
   // it — otherwise its mount-time run (closed by default) would clobber a
   // lock some other holder (e.g. the Preloader) still needs.
@@ -96,14 +124,19 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
     e.preventDefault();
     if (!validate()) return;
 
-    setIsSubmitting(true);
+    if (!openWhatsApp(buildConsultationMessage(formData))) {
+      setErrors({ submit: 'Booking via WhatsApp is unavailable right now. Please call us directly.' });
+      return;
+    }
+
+    // This modal stays mounted between opens, so clear the form now —
+    // otherwise the next booking would start pre-filled with these details.
+    setSubmittedName(formData.name.trim());
+    setFormData(emptyForm(defaultService));
+    setIsSuccess(true);
     setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSuccess(true);
-      setTimeout(() => {
-        onClose();
-      }, 4000);
-    }, 600);
+      onClose();
+    }, 4000);
   };
 
   return (
@@ -126,9 +159,9 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
         {isSuccess ? (
           <div className={styles.successWrapper}>
             <CheckCircle2 size={54} className={styles.successIcon} />
-            <h3 className={styles.successHeading}>Consultation Requested!</h3>
+            <h3 className={styles.successHeading}>Almost Done!</h3>
             <p className={styles.successText}>
-              Thank you, <strong>{formData.name}</strong>. Our senior consultant will call you at <strong>{formData.phone}</strong> within 24 business hours to confirm your consultation schedule.
+              Thank you, <strong>{submittedName}</strong>. We've opened WhatsApp with your consultation details — tap <strong>Send</strong> there to complete your request.
             </p>
             <button type="button" className="btn btn-primary-gold" onClick={onClose}>
               <span>Done</span>
@@ -251,14 +284,19 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
               />
             </div>
 
+            {errors.submit && (
+              <span className={styles.errorMsg}>
+                <AlertCircle size={12} /> {errors.submit}
+              </span>
+            )}
+
             <div className={styles.formFooter}>
               <button
                 type="submit"
-                disabled={isSubmitting}
                 className={`btn btn-primary-gold ${styles.submitButton}`}
               >
                 <Calendar size={16} />
-                <span>{isSubmitting ? 'CONFIRMING...' : 'CONFIRM CONSULTATION'}</span>
+                <span>CONFIRM CONSULTATION</span>
               </button>
 
               <a href="tel:+919790838319" className={styles.footerNote} aria-label="Or call direct: +91 97908 38319">

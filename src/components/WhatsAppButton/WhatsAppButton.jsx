@@ -1,10 +1,14 @@
 import React from 'react';
 import { MessageCircle } from 'lucide-react';
 import styles from './WhatsAppButton.module.scss';
+import { getWhatsAppUrl } from '../../config/contact';
 
 const WhatsAppButton = () => {
-  const message = encodeURIComponent('Hello Black Shades Home Decors, I would like to discuss a project.');
-  const whatsappUrl = `https://wa.me/919790838319?text=${message}`;
+  const whatsappUrl = getWhatsAppUrl('Hello Black Shades Home Decors, I would like to discuss a project.');
+
+  // No VITE_WHATSAPP_NUMBER configured — hide the button rather than link
+  // to WhatsApp's generic share screen.
+  if (!whatsappUrl) return null;
 
   return (
     <div className={styles.whatsappWrapper}>
@@ -14,7 +18,7 @@ const WhatsAppButton = () => {
         rel="noopener noreferrer"
         className={styles.whatsappBtn}
         aria-label="Chat on WhatsApp with Black Shades Home Decors"
-        title="Chat on WhatsApp (+91 97908 38319)"
+        title="Chat on WhatsApp"
       >
         {/* Custom SVG WhatsApp / Luxury Message Icon */}
         <div className={styles.iconBox}>
