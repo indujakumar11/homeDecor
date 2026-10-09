@@ -3,19 +3,13 @@ import { X, Calendar, CheckCircle2, Phone, Mail, Clock, AlertCircle } from 'luci
 import { getLenis } from '../../lib/smoothScroll';
 import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import { openWhatsApp } from '../../config/contact';
+import { servicesData } from '../../data/servicesData';
 import styles from './ConsultationModal.module.scss';
 
-const SERVICES_LIST = [
-  'Custom Murals & Relief Walls',
-  'FRP & Fiberglass Sculptures',
-  'Marble Stone Powder Sculptures',
-  '3D Parametric & Bespoke Designs',
-  'Interior Décor & Execution',
-  'Signage & Pylon Boards',
-  'Commercial & Corporate Interiors',
-  'Warehouse & Supermarket Solutions',
-  'Concept to Completion Turnkey Projects'
-];
+// Derived from servicesData (not a separate copy) so every service shown on
+// the Services page — including Government Projects — is selectable here.
+const SERVICES_LIST = servicesData.map((s) => s.title);
+const isValidService = (value) => SERVICES_LIST.includes(value);
 
 // <input type="date"> gives "YYYY-MM-DD"; built from parts (not new Date(str))
 // so it isn't shifted a day by UTC parsing.
@@ -25,8 +19,10 @@ const formatDate = (value) => {
 };
 
 // The WhatsApp message for a consultation request. Optional fields are only
-// included when the visitor filled them in.
-const buildConsultationMessage = (data) => {
+// included when the visitor filled them in. `project` is the project the
+// enquiry was started from, if any — kept on its own line, never used as the
+// service.
+const buildConsultationMessage = (data, project) => {
   const lines = [
     'Hello Black Shades Home Decors, I would like to book a design consultation.',
     '',
@@ -35,6 +31,7 @@ const buildConsultationMessage = (data) => {
     `Email: ${data.email.trim()}`,
     `Service: ${data.service}`,
   ];
+  if (project) lines.push(`Project: ${project}`);
   if (data.preferredDate) lines.push(`Preferred Date: ${formatDate(data.preferredDate)}`);
   if (data.location.trim()) lines.push(`Location: ${data.location.trim()}`);
   if (data.notes.trim()) lines.push(`Notes: ${data.notes.trim()}`);
@@ -45,13 +42,13 @@ const emptyForm = (service) => ({
   name: '',
   phone: '',
   email: '',
-  service: service || 'Custom Murals & Relief Walls',
+  service: isValidService(service) ? service : SERVICES_LIST[0],
   preferredDate: '',
   location: '',
   notes: ''
 });
 
-const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
+const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' }) => {
   const [formData, setFormData] = useState(() => emptyForm(defaultService));
 
   const [errors, setErrors] = useState({});
@@ -62,12 +59,24 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
   // it — otherwise its mount-time run (closed by default) would clobber a
   // lock some other holder (e.g. the Preloader) still needs.
   const holdsLockRef = useRef(false);
+  // The post-submit auto-close. Cancelled whenever the modal closes, so a
+  // timer from an earlier booking can't close the modal after it's been
+  // reopened (dropping whatever the visitor is typing).
+  const autoCloseTimerRef = useRef(null);
 
+  // Apply the opening context each time the modal opens. Only a real service
+  // title is ever put into the form — anything else would leave the <select>
+  // showing one option while state (and the WhatsApp message) held another.
+  // Opened from a project with no unambiguous service → no preselection, so
+  // the visitor must choose one.
   useEffect(() => {
-    if (defaultService) {
+    if (!isOpen) return;
+    if (isValidService(defaultService)) {
       setFormData((prev) => ({ ...prev, service: defaultService }));
+    } else if (project) {
+      setFormData((prev) => ({ ...prev, service: '' }));
     }
-  }, [defaultService]);
+  }, [isOpen, defaultService, project]);
 
   useEffect(() => {
     const lenis = getLenis();
@@ -76,6 +85,7 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
       holdsLockRef.current = true;
       lenis?.stop();
     } else {
+      clearTimeout(autoCloseTimerRef.current);
       if (holdsLockRef.current) {
         unlockScroll();
         holdsLockRef.current = false;
@@ -108,6 +118,7 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       newErrors.email = 'Enter a valid email';
     }
+    if (!isValidService(formData.service)) newErrors.service = 'Please select a service';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -124,7 +135,7 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
     e.preventDefault();
     if (!validate()) return;
 
-    if (!openWhatsApp(buildConsultationMessage(formData))) {
+    if (!openWhatsApp(buildConsultationMessage(formData, project))) {
       setErrors({ submit: 'Booking via WhatsApp is unavailable right now. Please call us directly.' });
       return;
     }
@@ -134,7 +145,7 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
     setSubmittedName(formData.name.trim());
     setFormData(emptyForm(defaultService));
     setIsSuccess(true);
-    setTimeout(() => {
+    autoCloseTimerRef.current = setTimeout(() => {
       onClose();
     }, 4000);
   };
@@ -227,22 +238,36 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '' }) => {
               </div>
 
               <div className={styles.fieldGroup}>
-                <label className={styles.label} htmlFor="c-service">Service of Interest</label>
+                <label className={styles.label} htmlFor="c-service">Service of Interest *</label>
                 <select
                   id="c-service"
                   name="service"
                   value={formData.service}
                   onChange={handleChange}
-                  className={styles.select}
+                  className={`${styles.select} ${errors.service ? styles.inputError : ''}`}
                 >
+                  <option value="" disabled>
+                    Select a service
+                  </option>
                   {SERVICES_LIST.map((svc) => (
                     <option key={svc} value={svc}>
                       {svc}
                     </option>
                   ))}
                 </select>
+                {errors.service && (
+                  <span className={styles.errorMsg}>
+                    <AlertCircle size={12} /> {errors.service}
+                  </span>
+                )}
               </div>
             </div>
+
+            {project && (
+              <p className={styles.projectContext}>
+                Enquiry about project: <strong>{project}</strong>
+              </p>
+            )}
 
             <div className={styles.fieldRow}>
               <div className={styles.fieldGroup}>

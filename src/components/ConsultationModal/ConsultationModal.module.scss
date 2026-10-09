@@ -158,6 +158,16 @@
   resize: vertical;
 }
 
+.projectContext {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+
+  strong {
+    color: var(--color-cream);
+    font-weight: 600;
+  }
+}
+
 .inputError {
   border-color: #e06c75 !important;
 }

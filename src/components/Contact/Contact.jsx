@@ -2,20 +2,12 @@ import React, { useState } from 'react';
 import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, Clock, Shield } from 'lucide-react';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
 import { openWhatsApp } from '../../config/contact';
+import { servicesData } from '../../data/servicesData';
 import styles from './Contact.module.scss';
 
-const PROJECT_TYPES = [
-  'Custom Murals & Relief Walls',
-  'FRP & Fiberglass Sculptures',
-  'Marble Stone Powder Sculptures',
-  '3D Parametric & Bespoke Designs',
-  'Interior Décor & Execution',
-  'Signage & Pylon Boards',
-  'Commercial & Corporate Interiors',
-  'Warehouse & Supermarket Solutions',
-  'Concept to Completion Turnkey Projects',
-  'Other Bespoke Requirements'
-];
+// Every service from servicesData (the same list the consultation modal and
+// Services page use), plus a catch-all for anything else.
+const PROJECT_TYPES = [...servicesData.map((s) => s.title), 'Other Bespoke Requirements'];
 
 // The WhatsApp message for a project enquiry.
 const buildEnquiryMessage = (data) => [

@@ -7,6 +7,7 @@ import ServicesPage from './pages/ServicesPage';
 import ProjectsPage from './pages/ProjectsPage';
 import ProcessPage from './pages/ProcessPage';
 import ContactPage from './pages/ContactPage';
+import NotFoundPage from './pages/NotFoundPage';
 import Footer from './components/Footer/Footer';
 import WhatsAppButton from './components/WhatsAppButton/WhatsAppButton';
 import ConsultationModal from './components/ConsultationModal/ConsultationModal';
@@ -24,9 +25,14 @@ const AdminApp = lazy(() => import('./admin/AdminApp'));
 function PublicSite() {
   const [isConsultationOpen, setIsConsultationOpen] = useState(false);
   const [selectedService, setSelectedService] = useState('');
+  const [selectedProject, setSelectedProject] = useState('');
 
-  const handleOpenConsultation = (service = '') => {
+  // `service` must be a service title (servicesData); `project` is optional
+  // project context kept separate from it. Buttons that pass this directly as
+  // an onClick handler hand it a click event, hence the string checks.
+  const handleOpenConsultation = (service = '', project = '') => {
     setSelectedService(typeof service === 'string' ? service : '');
+    setSelectedProject(typeof project === 'string' ? project : '');
     setIsConsultationOpen(true);
   };
 
@@ -51,6 +57,8 @@ function PublicSite() {
             <Route path="/projects" element={<ProjectsPage onOpenConsultation={handleOpenConsultation} />} />
             <Route path="/process" element={<ProcessPage onOpenConsultation={handleOpenConsultation} />} />
             <Route path="/contact" element={<ContactPage />} />
+            {/* Unknown public URLs. /admin/* never reaches here — App routes it to AdminApp. */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </PageTransition>
 
@@ -65,6 +73,7 @@ function PublicSite() {
           isOpen={isConsultationOpen}
           onClose={handleCloseConsultation}
           defaultService={selectedService}
+          project={selectedProject}
         />
       </div>
     </>

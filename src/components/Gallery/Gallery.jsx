@@ -4,7 +4,17 @@ import { useGSAP } from '@gsap/react';
 import { gsap, getLenis } from '../../lib/smoothScroll';
 import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import { getImages, getCategories } from '../../services/galleryService';
+import { servicesData } from '../../data/servicesData';
 import styles from './Gallery.module.scss';
+
+// The consultation service for a project, via the services' own categorySlug
+// links. Only an unambiguous match counts: a category shared by several
+// services (e.g. "sculptures" → FRP and Marble) or linked to none returns ''
+// so the visitor picks the service themselves.
+const serviceForCategory = (categorySlug) => {
+  const matches = servicesData.filter((s) => categorySlug && s.categorySlug === categorySlug);
+  return matches.length === 1 ? matches[0].title : '';
+};
 
 const Gallery = ({ onOpenConsultation }) => {
   const [activeCategory, setActiveCategory] = useState('All');
@@ -61,6 +71,7 @@ const Gallery = ({ onOpenConsultation }) => {
     id: img.id,
     title: img.title,
     category: img.categoryName,
+    categorySlug: img.categorySlug,
     location: img.location,
     image: img.imageUrl,
     // Phase 1 gallery-image-optimization: optional, smaller WebP variant of
@@ -220,7 +231,7 @@ const Gallery = ({ onOpenConsultation }) => {
                   className="btn btn-primary-gold"
                   onClick={() => {
                     handleCloseProject();
-                    onOpenConsultation(activeProject.title);
+                    onOpenConsultation(serviceForCategory(activeProject.categorySlug), activeProject.title);
                   }}
                 >
                   <Calendar size={16} />

@@ -1,0 +1,47 @@
+@use '../styles/variables' as *;
+@use '../styles/mixins' as *;
+
+.notFound {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+}
+
+.heading {
+  font-size: clamp(2.2rem, 6vw, 4rem);
+}
+
+.text {
+  max-width: 34rem;
+  font-size: 1.02rem;
+  line-height: 1.7;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+
+  // .btn's button-reset removes the outline; give these links a visible
+  // keyboard focus ring (scoped here — the site-wide fix is separate).
+  a:focus-visible {
+    outline: 2px solid var(--color-gold-bright);
+    outline-offset: 3px;
+  }
+
+  @include respond-to('sm') {
+    flex-direction: column;
+    width: 100%;
+    max-width: 20rem;
+  }
+}
