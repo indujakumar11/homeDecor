@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { servicesData } from '../../data/servicesData';
 import { ArrowRight, Sparkles, Check, X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -7,6 +7,41 @@ import { getLenis, prefersReducedMotion } from '../../lib/smoothScroll';
 import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import { getCategories, getImagesByCategory } from '../../services/galleryService';
 import styles from './Services.module.scss';
+
+// Detail-dialog focus helpers — same approach as ConsultationModal's and the
+// Gallery lightbox's (kept local here; they could later share one module).
+const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]';
+
+// Keyboard-reachable controls inside `root`, in DOM order. Read on every Tab
+// press, so carousel buttons that appear after images load are included.
+const getFocusable = (root) =>
+  [...root.querySelectorAll(FOCUSABLE)].filter(
+    (el) => !el.disabled && el.tabIndex >= 0 && !el.closest('[inert]') && el.getClientRects().length > 0
+  );
+
+// Makes everything outside `el` inert (siblings of `el` and of each ancestor up
+// to <body>, never an ancestor itself). Returns a function restoring exactly
+// what it changed.
+const inertOutside = (el) => {
+  const changed = [];
+  for (let node = el; node && node !== document.body; node = node.parentElement) {
+    for (const sibling of node.parentElement?.children ?? []) {
+      if (sibling !== node && !sibling.inert) {
+        sibling.inert = true;
+        changed.push(sibling);
+      }
+    }
+  }
+  return () => changed.forEach((sibling) => { sibling.inert = false; });
+};
+
+// Whether focus can sensibly go back to the card that opened the dialog (it
+// may be gone, e.g. when the dialog was opened from the Home page).
+const canRestoreFocus = (el) => {
+  if (!el || !el.isConnected || el === document.body || el.disabled || el.closest('[inert]')) return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0;
+};
 
 const Services = ({ onOpenConsultation }) => {
   const [selectedService, setSelectedService] = useState(null);
@@ -19,6 +54,13 @@ const Services = ({ onOpenConsultation }) => {
   // lock some other holder still needs.
   const holdsLockRef = useRef(false);
   const gridRef = useScrollReveal({ selector: `.${styles.serviceCard}`, y: 32 });
+  const dialogRef = useRef(null);
+  const dialogTitleRef = useRef(null);
+  const dialogTitleId = useId();
+  const dialogOpen = Boolean(selectedService);
+  // Latest close handler (it may navigate home) for the keydown listener,
+  // without re-running the focus effect on every render.
+  const closeDialogRef = useRef(null);
 
   // Service-detail image carousel: starts as just the service's own static
   // image (always slide 1), then grows with other decor_items from the same
@@ -84,6 +126,54 @@ const Services = ({ onOpenConsultation }) => {
       navigate('/');
     }
   };
+
+  useEffect(() => {
+    closeDialogRef.current = handleCloseModal;
+  });
+
+  // Detail dialog keyboard behaviour while open: background inert, focus on
+  // the service title, Tab/Shift+Tab kept inside, Escape closes. On close (or
+  // unmount) the background and focus are restored to the card that opened it.
+  useEffect(() => {
+    if (!dialogOpen || !dialogRef.current) return undefined;
+    const dialog = dialogRef.current;
+    const opener = document.activeElement;
+    const restoreInert = inertOutside(dialog);
+    // preventScroll: on narrow screens the title sits below the image.
+    dialogTitleRef.current?.focus({ preventScroll: true });
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDialogRef.current?.();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const focusable = getFocusable(dialog);
+      if (focusable.length === 0) {
+        e.preventDefault();
+        dialogTitleRef.current?.focus({ preventScroll: true });
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const inside = dialog.contains(document.activeElement);
+      if (e.shiftKey && (!inside || document.activeElement === first)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      restoreInert();
+      if (canRestoreFocus(opener)) opener.focus({ preventScroll: true });
+    };
+  }, [dialogOpen]);
 
   // Categories are only needed to resolve a service's categorySlug to a
   // Supabase category id — fetched once, reused for every service the
@@ -257,16 +347,23 @@ const Services = ({ onOpenConsultation }) => {
 
       {/* Service Detail Modal */}
       {selectedService && (
-        <div className={styles.modalBackdrop} onClick={handleCloseModal} role="dialog" aria-modal="true">
+        <div
+          ref={dialogRef}
+          className={styles.modalBackdrop}
+          onClick={handleCloseModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={dialogTitleId}
+        >
           <div
             className={styles.modalContainer}
             data-lenis-prevent
             onClick={(e) => e.stopPropagation()}
           >
-            <button 
-              className={styles.modalCloseBtn} 
+            <button
+              className={styles.modalCloseBtn}
               onClick={handleCloseModal}
-              aria-label="Close details"
+              aria-label="Close service details"
             >
               <X size={22} />
             </button>
@@ -329,7 +426,9 @@ const Services = ({ onOpenConsultation }) => {
 
               <div className={styles.modalContentCol}>
                 <span className="eyebrow no-decor">{selectedService.subtitle}</span>
-                <h3 className={styles.modalTitle}>{selectedService.title}</h3>
+                <h3 id={dialogTitleId} ref={dialogTitleRef} tabIndex={-1} className={styles.modalTitle}>
+                  {selectedService.title}
+                </h3>
                 
                 <p className={styles.modalDetailsText}>{selectedService.details}</p>
 

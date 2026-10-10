@@ -27,6 +27,13 @@
   to { transform: rotate(360deg); }
 }
 
+// While decor loads, hold at least a screen of space so the footer starts
+// below the fold — otherwise it shows during loading and jumps away when the
+// grid arrives (the main layout shift on this page).
+.stateLoading {
+  min-height: 100vh;
+}
+
 .filterTabsWrapper {
   display: flex;
   align-items: center;
@@ -257,6 +264,16 @@
   object-fit: contain;
 }
 
+// Reserves the image's final box before it downloads (ratio taken from the
+// card's loaded thumbnail — see handleOpenProject). Same size the rules above
+// produce once loaded: as wide as fits, but no taller than 85vh, and never
+// wider than --img-max-w.
+.modalImgSized {
+  width: min(100%, 90vw, calc(85vh * var(--img-ratio)), var(--img-max-w));
+  height: auto;
+  aspect-ratio: var(--img-ratio);
+}
+
 .modalDetails {
   padding: 1.75rem 2rem;
 }
@@ -296,6 +313,12 @@
 .modalProjectTitle {
   font-size: 1.5rem;
   margin-bottom: 0.85rem;
+
+  // Receives focus programmatically when the lightbox opens (tabIndex -1, not
+  // a control), so no focus ring — the controls keep theirs.
+  &:focus {
+    outline: none;
+  }
 }
 
 .modalProjectDesc {

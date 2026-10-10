@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useId } from 'react';
 import { ArrowRight, MapPin, Eye, X, Calendar, Loader2 } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import { gsap, getLenis } from '../../lib/smoothScroll';
@@ -16,6 +16,40 @@ const serviceForCategory = (categorySlug) => {
   return matches.length === 1 ? matches[0].title : '';
 };
 
+// Lightbox focus helpers — same approach as ConsultationModal's dialog
+// (kept local here; the two could later share one module).
+const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]';
+
+// Keyboard-reachable controls inside `root`, in DOM order.
+const getFocusable = (root) =>
+  [...root.querySelectorAll(FOCUSABLE)].filter(
+    (el) => !el.disabled && el.tabIndex >= 0 && !el.closest('[inert]') && el.getClientRects().length > 0
+  );
+
+// Makes everything outside `el` inert (siblings of `el` and of each ancestor up
+// to <body>, never an ancestor itself). Returns a function restoring exactly
+// what it changed.
+const inertOutside = (el) => {
+  const changed = [];
+  for (let node = el; node && node !== document.body; node = node.parentElement) {
+    for (const sibling of node.parentElement?.children ?? []) {
+      if (sibling !== node && !sibling.inert) {
+        sibling.inert = true;
+        changed.push(sibling);
+      }
+    }
+  }
+  return () => changed.forEach((sibling) => { sibling.inert = false; });
+};
+
+// Whether focus can sensibly go back to the card that opened the lightbox
+// (it may have been filtered out or removed meanwhile).
+const canRestoreFocus = (el) => {
+  if (!el || !el.isConnected || el === document.body || el.disabled || el.closest('[inert]')) return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0;
+};
+
 const Gallery = ({ onOpenConsultation }) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeProject, setActiveProject] = useState(null);
@@ -27,6 +61,60 @@ const Gallery = ({ onOpenConsultation }) => {
   // it — mirrors ConsultationModal's guard so an unmount never clobbers a
   // lock some other holder still needs.
   const holdsLockRef = useRef(false);
+  const lightboxRef = useRef(null);
+  const lightboxTitleRef = useRef(null);
+  const lightboxTitleId = useId();
+  const lightboxOpen = Boolean(activeProject);
+  // Latest close handler for the keydown listener, without re-running the
+  // focus effect on every render.
+  const closeLightboxRef = useRef(null);
+  useEffect(() => {
+    closeLightboxRef.current = () => setActiveProject(null);
+  });
+
+  // Lightbox keyboard behaviour while open: background inert, focus on the
+  // project title, Tab/Shift+Tab kept inside, Escape closes. On close (or
+  // unmount) the background and focus are restored to the card that opened it.
+  useEffect(() => {
+    if (!lightboxOpen || !lightboxRef.current) return undefined;
+    const dialog = lightboxRef.current;
+    const opener = document.activeElement;
+    const restoreInert = inertOutside(dialog);
+    // preventScroll: the title sits below the image — keep the image in view.
+    lightboxTitleRef.current?.focus({ preventScroll: true });
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeLightboxRef.current?.();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const focusable = getFocusable(dialog);
+      if (focusable.length === 0) {
+        e.preventDefault();
+        lightboxTitleRef.current?.focus({ preventScroll: true });
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const inside = dialog.contains(document.activeElement);
+      if (e.shiftKey && (!inside || document.activeElement === first)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      restoreInert();
+      if (canRestoreFocus(opener)) opener.focus({ preventScroll: true });
+    };
+  }, [lightboxOpen]);
 
   useEffect(() => {
     const lenis = getLenis();
@@ -102,8 +190,22 @@ const Gallery = ({ onOpenConsultation }) => {
     return () => mm.revert();
   }, { dependencies: [activeCategory], scope: gridRef });
 
-  const handleOpenProject = (proj) => {
-    setActiveProject(proj);
+  // `card` is the clicked grid item. Its thumbnail is the same photo as the
+  // lightbox image (a smaller variant of it, or the same file), so its
+  // natural size gives the lightbox image's aspect ratio before the larger
+  // original downloads — letting the modal reserve that space instead of
+  // growing when the image arrives. No usable thumbnail (still loading, or
+  // failed) → no ratio, and the modal falls back to sizing on load.
+  const handleOpenProject = (proj, card) => {
+    const thumb = card?.querySelector('img');
+    const hasSize = thumb?.naturalWidth > 0 && thumb?.naturalHeight > 0;
+    setActiveProject({
+      ...proj,
+      imageRatio: hasSize ? thumb.naturalWidth / thumb.naturalHeight : null,
+      // When the thumbnail IS the lightbox file, never upscale past its
+      // real width (the lightbox shows images at natural size at most).
+      imageMaxWidth: hasSize && !proj.galleryImage ? thumb.naturalWidth : null,
+    });
   };
 
   const handleCloseProject = () => {
@@ -114,7 +216,7 @@ const Gallery = ({ onOpenConsultation }) => {
     <section id="projects" className={`section-padding ${styles.gallerySection}`}>
       <div className="container">
         {status === 'loading' ? (
-          <div className={styles.stateMessage}>
+          <div className={`${styles.stateMessage} ${styles.stateLoading}`}>
             <Loader2 size={28} className={styles.stateSpinner} />
             <p>Loading decor…</p>
           </div>
@@ -151,13 +253,13 @@ const Gallery = ({ onOpenConsultation }) => {
                   <div
                     key={project.id}
                     className={styles.galleryItem}
-                    onClick={() => handleOpenProject(project)}
+                    onClick={(e) => handleOpenProject(project, e.currentTarget)}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        handleOpenProject(project);
+                        handleOpenProject(project, e.currentTarget);
                       }
                     }}
                   >
@@ -192,14 +294,31 @@ const Gallery = ({ onOpenConsultation }) => {
 
       {/* Project Lightbox Modal */}
       {activeProject && (
-        <div className={styles.modalBackdrop} data-lenis-prevent onClick={handleCloseProject} role="dialog" aria-modal="true">
+        <div
+          ref={lightboxRef}
+          className={styles.modalBackdrop}
+          data-lenis-prevent
+          onClick={handleCloseProject}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={lightboxTitleId}
+        >
           <div className={styles.modalBox} onClick={(e) => e.stopPropagation()}>
             <button className={styles.modalCloseBtn} onClick={handleCloseProject} aria-label="Close project view">
               <X size={22} />
             </button>
 
             <div className={styles.modalImageWrapper}>
-              <img src={activeProject.image} alt={activeProject.title} className={styles.modalImg} decoding="async" />
+              <img
+                src={activeProject.image}
+                alt={activeProject.title}
+                className={`${styles.modalImg} ${activeProject.imageRatio ? styles.modalImgSized : ''}`}
+                style={activeProject.imageRatio ? {
+                  '--img-ratio': activeProject.imageRatio,
+                  '--img-max-w': activeProject.imageMaxWidth ? `${activeProject.imageMaxWidth}px` : '100%',
+                } : undefined}
+                decoding="async"
+              />
             </div>
 
             <div className={styles.modalDetails}>
@@ -215,7 +334,9 @@ const Gallery = ({ onOpenConsultation }) => {
                 )}
               </div>
 
-              <h3 className={styles.modalProjectTitle}>{activeProject.title}</h3>
+              <h3 id={lightboxTitleId} ref={lightboxTitleRef} tabIndex={-1} className={styles.modalProjectTitle}>
+                {activeProject.title}
+              </h3>
               <p className={styles.modalProjectDesc}>{activeProject.description}</p>
 
               {activeProject.scope && (

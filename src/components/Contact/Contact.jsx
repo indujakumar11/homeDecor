@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, Clock, Shield } from 'lucide-react';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
 import { openWhatsApp } from '../../config/contact';
@@ -20,6 +20,10 @@ const buildEnquiryMessage = (data) => [
   `Project Details: ${data.message.trim()}`,
 ].join('\n');
 
+// Validated fields in on-screen order — the first one with an error gets
+// focus after a failed submit.
+const FIELD_ORDER = ['name', 'phone', 'email', 'message'];
+
 const Contact = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -31,6 +35,25 @@ const Contact = () => {
 
   const [errors, setErrors] = useState({});
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  // Error message ids (unique per form instance) and the field to focus once
+  // a failed submit's errors have rendered — so assistive tech reads the
+  // field's label, invalid state and error together.
+  const idPrefix = useId();
+  const errorId = (field) => `${idPrefix}-${field}-error`;
+  const focusAfterErrorsRef = useRef(null);
+
+  useEffect(() => {
+    if (!focusAfterErrorsRef.current) return;
+    document.getElementById(focusAfterErrorsRef.current)?.focus();
+    focusAfterErrorsRef.current = null;
+  }, [errors]);
+
+  // aria-invalid + a link to the visible error text while there is one.
+  // Explicit "false" otherwise: with `required`, browsers would report a
+  // half-typed email as invalid before any submit.
+  const errorProps = (field) => (errors[field]
+    ? { 'aria-invalid': true, 'aria-describedby': errorId(field) }
+    : { 'aria-invalid': false });
   const gridRef = useScrollReveal({ selector: `.${styles.contactInfoCol}, .${styles.contactFormCol}`, y: 24, stagger: 0.15 });
 
   const validateForm = () => {
@@ -58,6 +81,7 @@ const Contact = () => {
       newErrors.message = 'Please describe your requirements in at least 10 characters';
     }
 
+    focusAfterErrorsRef.current = FIELD_ORDER.find((field) => newErrors[field]) ?? null;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -183,9 +207,11 @@ const Contact = () => {
                     onChange={handleChange}
                     placeholder="e.g. Rajesh Kumar"
                     className={`${styles.inputField} ${errors.name ? styles.inputError : ''}`}
+                    required
+                    {...errorProps('name')}
                   />
                   {errors.name && (
-                    <span className={styles.errorMessage}>
+                    <span id={errorId('name')} className={styles.errorMessage}>
                       <AlertCircle size={13} /> {errors.name}
                     </span>
                   )}
@@ -205,9 +231,11 @@ const Contact = () => {
                       onChange={handleChange}
                       placeholder="+91 98765 43210"
                       className={`${styles.inputField} ${errors.phone ? styles.inputError : ''}`}
+                      required
+                      {...errorProps('phone')}
                     />
                     {errors.phone && (
-                      <span className={styles.errorMessage}>
+                      <span id={errorId('phone')} className={styles.errorMessage}>
                         <AlertCircle size={13} /> {errors.phone}
                       </span>
                     )}
@@ -225,9 +253,11 @@ const Contact = () => {
                       onChange={handleChange}
                       placeholder="yourname@gmail.com"
                       className={`${styles.inputField} ${errors.email ? styles.inputError : ''}`}
+                      required
+                      {...errorProps('email')}
                     />
                     {errors.email && (
-                      <span className={styles.errorMessage}>
+                      <span id={errorId('email')} className={styles.errorMessage}>
                         <AlertCircle size={13} /> {errors.email}
                       </span>
                     )}
@@ -269,16 +299,18 @@ const Contact = () => {
                     onChange={handleChange}
                     placeholder="Describe your space dimensions, preferred style (murals, FRP statues, turnkey interior), or site location..."
                     className={`${styles.textareaField} ${errors.message ? styles.inputError : ''}`}
+                    required
+                    {...errorProps('message')}
                   ></textarea>
                   {errors.message && (
-                    <span className={styles.errorMessage}>
+                    <span id={errorId('message')} className={styles.errorMessage}>
                       <AlertCircle size={13} /> {errors.message}
                     </span>
                   )}
                 </div>
 
                 {errors.submit && (
-                  <span className={styles.errorMessage}>
+                  <span role="alert" className={styles.errorMessage}>
                     <AlertCircle size={13} /> {errors.submit}
                   </span>
                 )}

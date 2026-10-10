@@ -396,6 +396,12 @@
   font-size: clamp(1.4rem, 2.5vw, 1.85rem);
   margin-bottom: 1rem;
   line-height: 1.25;
+
+  // Receives focus programmatically when the dialog opens (tabIndex -1, not
+  // a control), so no focus ring — the controls keep theirs.
+  &:focus {
+    outline: none;
+  }
 }
 
 .modalDetailsText {

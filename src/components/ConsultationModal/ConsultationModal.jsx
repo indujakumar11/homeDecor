@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { X, Calendar, CheckCircle2, Phone, Mail, Clock, AlertCircle } from 'lucide-react';
 import { getLenis } from '../../lib/smoothScroll';
 import { lockScroll, unlockScroll } from '../../lib/scrollLock';
@@ -38,6 +38,40 @@ const buildConsultationMessage = (data, project) => {
   return lines.join('\n');
 };
 
+const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]';
+
+// Keyboard-reachable controls inside `root`, in DOM order (skips disabled,
+// tabindex="-1", inert and hidden elements).
+const getFocusable = (root) =>
+  [...root.querySelectorAll(FOCUSABLE)].filter(
+    (el) => !el.disabled && el.tabIndex >= 0 && !el.closest('[inert]') && el.getClientRects().length > 0
+  );
+
+// Makes everything outside `el` inert by marking the siblings of `el` and of
+// each of its ancestors up to <body> — never an ancestor of the dialog itself.
+// Returns a function that restores exactly the elements it changed (anything
+// already inert is left alone).
+const inertOutside = (el) => {
+  const changed = [];
+  for (let node = el; node && node !== document.body; node = node.parentElement) {
+    for (const sibling of node.parentElement?.children ?? []) {
+      if (sibling !== node && !sibling.inert) {
+        sibling.inert = true;
+        changed.push(sibling);
+      }
+    }
+  }
+  return () => changed.forEach((sibling) => { sibling.inert = false; });
+};
+
+// Whether focus can sensibly go back to `el` (it may have been removed, or be
+// inside a now-closed off-screen drawer).
+const canRestoreFocus = (el) => {
+  if (!el || !el.isConnected || el === document.body || el.disabled || el.closest('[inert]')) return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0 && r.right > 0 && r.left < window.innerWidth;
+};
+
 const emptyForm = (service) => ({
   name: '',
   phone: '',
@@ -59,10 +93,81 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
   // it — otherwise its mount-time run (closed by default) would clobber a
   // lock some other holder (e.g. the Preloader) still needs.
   const holdsLockRef = useRef(false);
+  // Error message ids (unique per instance) and the field to focus once a
+  // failed submit's errors have rendered — so assistive tech reads the
+  // field's label, invalid state and error together.
+  const errorIdPrefix = useId();
+  const errorId = (field) => `${errorIdPrefix}-${field}-error`;
+  const focusAfterErrorsRef = useRef(null);
+
+  useEffect(() => {
+    if (!focusAfterErrorsRef.current) return;
+    document.getElementById(focusAfterErrorsRef.current)?.focus();
+    focusAfterErrorsRef.current = null;
+  }, [errors]);
+
+  // aria-invalid + a link to the visible error text while there is one.
+  // Explicit "false" otherwise: with `required`, browsers would report an
+  // empty <select> or half-typed email as invalid before any submit.
+  const errorProps = (field) => (errors[field]
+    ? { 'aria-invalid': true, 'aria-describedby': errorId(field) }
+    : { 'aria-invalid': false });
   // The post-submit auto-close. Cancelled whenever the modal closes, so a
   // timer from an earlier booking can't close the modal after it's been
   // reopened (dropping whatever the visitor is typing).
   const autoCloseTimerRef = useRef(null);
+  const dialogRef = useRef(null);
+  const headingRef = useRef(null);
+  const titleId = useId();
+  // Latest onClose for the keydown listener, without re-running the focus
+  // effect (and re-focusing the heading) whenever the parent re-renders.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  // Dialog keyboard behaviour while open: background made inert, focus moved
+  // to the heading, Tab/Shift+Tab kept inside, Escape closes. On close (or
+  // unmount) the background and focus are restored to the opener.
+  useEffect(() => {
+    if (!isOpen || !dialogRef.current) return undefined;
+    const dialog = dialogRef.current;
+    const opener = document.activeElement;
+    const restoreInert = inertOutside(dialog);
+    headingRef.current?.focus({ preventScroll: true });
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const focusable = getFocusable(dialog);
+      if (focusable.length === 0) {
+        e.preventDefault();
+        headingRef.current?.focus({ preventScroll: true });
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const inside = dialog.contains(document.activeElement);
+      if (e.shiftKey && (!inside || document.activeElement === first)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      restoreInert();
+      if (canRestoreFocus(opener)) opener.focus({ preventScroll: true });
+    };
+  }, [isOpen]);
 
   // Apply the opening context each time the modal opens. Only a real service
   // title is ever put into the form — anything else would leave the <select>
@@ -119,6 +224,9 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
       newErrors.email = 'Enter a valid email';
     }
     if (!isValidService(formData.service)) newErrors.service = 'Please select a service';
+    // Validated fields in on-screen order → element ids.
+    const firstInvalid = ['name', 'phone', 'email', 'service'].find((field) => newErrors[field]);
+    focusAfterErrorsRef.current = firstInvalid ? `c-${firstInvalid}` : null;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -151,7 +259,14 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
   };
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose} role="dialog" aria-modal="true">
+    <div
+      ref={dialogRef}
+      className={styles.modalOverlay}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
       <div className={styles.modalContent} data-lenis-prevent onClick={(e) => e.stopPropagation()}>
         <button className={styles.closeButton} onClick={onClose} aria-label="Close consultation modal">
           <X size={22} />
@@ -159,7 +274,7 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
 
         <div className={styles.modalHeader}>
           <div className="eyebrow no-decor">SCHEDULE AN APPOINTMENT</div>
-          <h2 className={styles.modalTitle}>
+          <h2 id={titleId} ref={headingRef} tabIndex={-1} className={styles.modalTitle}>
             Book a Design <span className="gold-text">Consultation</span>
           </h2>
           <p className={styles.modalSubtitle}>
@@ -191,9 +306,11 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
                   onChange={handleChange}
                   placeholder="e.g. Senthil Nathan"
                   className={`${styles.input} ${errors.name ? styles.inputError : ''}`}
+                  required
+                  {...errorProps('name')}
                 />
                 {errors.name && (
-                  <span className={styles.errorMsg}>
+                  <span id={errorId('name')} className={styles.errorMsg}>
                     <AlertCircle size={12} /> {errors.name}
                   </span>
                 )}
@@ -209,9 +326,11 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
                   onChange={handleChange}
                   placeholder="+91 97908 38319"
                   className={`${styles.input} ${errors.phone ? styles.inputError : ''}`}
+                  required
+                  {...errorProps('phone')}
                 />
                 {errors.phone && (
-                  <span className={styles.errorMsg}>
+                  <span id={errorId('phone')} className={styles.errorMsg}>
                     <AlertCircle size={12} /> {errors.phone}
                   </span>
                 )}
@@ -229,9 +348,11 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
                   onChange={handleChange}
                   placeholder="name@gmail.com"
                   className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
+                  required
+                  {...errorProps('email')}
                 />
                 {errors.email && (
-                  <span className={styles.errorMsg}>
+                  <span id={errorId('email')} className={styles.errorMsg}>
                     <AlertCircle size={12} /> {errors.email}
                   </span>
                 )}
@@ -245,6 +366,10 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
                   value={formData.service}
                   onChange={handleChange}
                   className={`${styles.select} ${errors.service ? styles.inputError : ''}`}
+                  required
+                  // Chrome doesn't expose native `required` on <select> to the accessibility tree.
+                  aria-required="true"
+                  {...errorProps('service')}
                 >
                   <option value="" disabled>
                     Select a service
@@ -256,7 +381,7 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
                   ))}
                 </select>
                 {errors.service && (
-                  <span className={styles.errorMsg}>
+                  <span id={errorId('service')} className={styles.errorMsg}>
                     <AlertCircle size={12} /> {errors.service}
                   </span>
                 )}
@@ -310,7 +435,7 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
             </div>
 
             {errors.submit && (
-              <span className={styles.errorMsg}>
+              <span role="alert" className={styles.errorMsg}>
                 <AlertCircle size={12} /> {errors.submit}
               </span>
             )}

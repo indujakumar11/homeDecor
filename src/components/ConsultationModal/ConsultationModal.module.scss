@@ -81,6 +81,12 @@
 .modalTitle {
   font-size: clamp(1.5rem, 2.5vw, 2rem);
   margin-bottom: 0.5rem;
+
+  // Receives focus programmatically when the modal opens (tabIndex -1, not a
+  // control), so no focus ring — the controls keep theirs.
+  &:focus {
+    outline: none;
+  }
 }
 
 .modalSubtitle {
