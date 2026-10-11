@@ -226,14 +226,14 @@ const Gallery = ({ onOpenConsultation }) => {
           </div>
         ) : (
           <>
-            {/* Category Filter Tabs */}
-            <div className={styles.filterTabsWrapper} role="tablist">
+            {/* Category filter — toggle buttons (one grid of results, filtered;
+                not separate tab panels), the selected one marked aria-pressed. */}
+            <div className={styles.filterTabsWrapper} role="group" aria-label="Filter projects by category">
               {CATEGORY_TABS.map((cat) => (
                 <button
                   key={cat}
                   type="button"
-                  role="tab"
-                  aria-selected={activeCategory === cat}
+                  aria-pressed={activeCategory === cat}
                   className={`${styles.filterTab} ${activeCategory === cat ? styles.activeTab : ''}`}
                   onClick={() => setActiveCategory(cat)}
                 >

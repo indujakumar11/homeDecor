@@ -67,6 +67,19 @@ function PublicSite() {
       <SmoothScrollProvider />
       <Preloader />
       <div className="app-root">
+        {/* First Tab stop. A plain href="#main-content" would be read as a
+            route by the HashRouter, so focus the page's <main> directly. */}
+        <a
+          href="#main-content"
+          className="skip-link"
+          onClick={(e) => {
+            e.preventDefault();
+            document.getElementById('main-content')?.focus();
+          }}
+        >
+          Skip to main content
+        </a>
+
         {/* Sticky Header Navigation */}
         <Navbar onOpenConsultation={handleOpenConsultation} />
 

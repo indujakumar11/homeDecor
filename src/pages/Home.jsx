@@ -9,7 +9,7 @@ import CTA from '../components/CTA/CTA';
 
 const Home = ({ onOpenConsultation }) => {
   return (
-    <main id="main-content">
+    <main id="main-content" tabIndex={-1}>
       {/* Category Carousel — visible right below navbar */}
       <div className="carousel-top-wrapper">
         <CategoryCarousel />

@@ -4,7 +4,7 @@ import WhyChooseUs from '../components/WhyChooseUs/WhyChooseUs';
 
 const AboutPage = ({ onOpenConsultation }) => {
   return (
-    <main className="subpage-layout">
+    <main id="main-content" tabIndex={-1} className="subpage-layout">
       <About onOpenConsultation={onOpenConsultation} />
       <WhyChooseUs onOpenConsultation={onOpenConsultation} />
     </main>

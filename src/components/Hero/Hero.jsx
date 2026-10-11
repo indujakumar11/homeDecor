@@ -138,11 +138,11 @@ const Hero = () => {
             <span className={styles.pillItem}>
               <span className={styles.goldDot}></span> Custom Murals & Relief
             </span>
-            <span className={styles.pillDivider}>/</span>
+            <span className={styles.pillDivider} aria-hidden="true">/</span>
             <span className={styles.pillItem}>
               <span className={styles.goldDot}></span> FRP & Stone Sculptures
             </span>
-            <span className={styles.pillDivider}>/</span>
+            <span className={styles.pillDivider} aria-hidden="true">/</span>
             <span className={styles.pillItem}>
               <span className={styles.goldDot}></span> Turnkey Execution
             </span>

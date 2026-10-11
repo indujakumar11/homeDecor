@@ -28,6 +28,7 @@ const Process = ({ onOpenConsultation }) => {
                   tabIndex={0}
                   role="button"
                   aria-label={`Step ${step.step}: ${step.title}`}
+                  aria-current={isActive ? 'step' : undefined}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();

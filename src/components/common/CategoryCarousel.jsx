@@ -54,9 +54,10 @@ const CategoryCarousel = ({ activeCategoryId, onSelectCategory }) => {
       >
         <div className={styles.thumbnailWrapper}>
           <div className={styles.imageRing}>
+            {/* Decorative: the caption below already names the button. */}
             <img
               src={cat.image}
-              alt={cat.title}
+              alt=""
               className={styles.thumbnailImage}
               width={cat.width}
               height={cat.height}

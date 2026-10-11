@@ -7,7 +7,7 @@ import styles from './NotFoundPage.module.scss';
 // HashRouter this works on any host/base path — no server-side 404 needed.
 const NotFoundPage = () => {
   return (
-    <main className="subpage-layout">
+    <main id="main-content" tabIndex={-1} className="subpage-layout">
       <section className={`section-padding ${styles.notFound}`}>
         <div className={`container ${styles.content}`}>
           <div className="eyebrow">ERROR 404</div>
