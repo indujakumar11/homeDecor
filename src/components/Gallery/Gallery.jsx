@@ -50,6 +50,23 @@ const canRestoreFocus = (el) => {
   return r.width > 0 && r.height > 0;
 };
 
+// Lightbox image resolution. The lightbox opens with the card's smaller
+// gallery variant (usually already cached by the card) and swaps to the full
+// original only when the screen would show more detail than the variant has.
+// Device pixel ratio is capped at 1.5: beyond that the extra sharpness is
+// hard to see at lightbox size, while the original costs megabytes.
+const LIGHTBOX_MAX_DPR = 1.5;
+
+// The visitor asked the browser to save data (where the browser exposes it).
+const prefersSaveData = () => navigator.connection?.saveData === true;
+
+// Whether `img`, as rendered, needs more pixels than its loaded file has.
+// clientWidth/Height ignore the modal's open animation transform.
+const needsMorePixels = (img) => {
+  const dpr = Math.min(window.devicePixelRatio || 1, LIGHTBOX_MAX_DPR);
+  return img.clientWidth * dpr > img.naturalWidth || img.clientHeight * dpr > img.naturalHeight;
+};
+
 const Gallery = ({ onOpenConsultation }) => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeProject, setActiveProject] = useState(null);
@@ -71,6 +88,20 @@ const Gallery = ({ onOpenConsultation }) => {
   useEffect(() => {
     closeLightboxRef.current = () => setActiveProject(null);
   });
+
+  // Each lightbox opening gets its own id, so image results from an earlier
+  // opening (even of the same project) can never land in a later one.
+  const openCountRef = useRef(0);
+  // Image source chosen for one opening — { openId, src } — once it differs
+  // from the initial one (upgraded to the original, or fallen back to it).
+  const [lightboxImage, setLightboxImage] = useState(null);
+  // Cancels the in-flight original-image load, if any.
+  const cancelOriginalRef = useRef(null);
+  const activeOpenId = activeProject?.openId;
+  useEffect(() => () => {
+    cancelOriginalRef.current?.();
+    cancelOriginalRef.current = null;
+  }, [activeOpenId]);
 
   // Lightbox keyboard behaviour while open: background inert, focus on the
   // project title, Tab/Shift+Tab kept inside, Escape closes. On close (or
@@ -163,9 +194,9 @@ const Gallery = ({ onOpenConsultation }) => {
     location: img.location,
     image: img.imageUrl,
     // Phase 1 gallery-image-optimization: optional, smaller WebP variant of
-    // `image` — null for any item without one yet. Only the grid card below
-    // uses this (with a fallback to the original); the lightbox/modal
-    // intentionally keeps using `image` (the original) unconditionally.
+    // `image` — null for any item without one yet. The grid card uses it
+    // (falling back to the original); the lightbox opens with it too and
+    // upgrades to `image` only when the screen needs more pixels.
     galleryImage: img.galleryImageUrl,
     description: img.description,
     scope: img.scope,
@@ -192,24 +223,74 @@ const Gallery = ({ onOpenConsultation }) => {
 
   // `card` is the clicked grid item. Its thumbnail is the same photo as the
   // lightbox image (a smaller variant of it, or the same file), so its
-  // natural size gives the lightbox image's aspect ratio before the larger
-  // original downloads — letting the modal reserve that space instead of
-  // growing when the image arrives. No usable thumbnail (still loading, or
-  // failed) → no ratio, and the modal falls back to sizing on load.
+  // natural size gives the lightbox image's aspect ratio before the image
+  // loads — letting the modal reserve that space instead of growing when
+  // the image arrives (or when it is swapped for the original). No usable
+  // thumbnail (still loading, or failed) → no ratio, and the modal falls
+  // back to sizing on load.
   const handleOpenProject = (proj, card) => {
     const thumb = card?.querySelector('img');
     const hasSize = thumb?.naturalWidth > 0 && thumb?.naturalHeight > 0;
+    openCountRef.current += 1;
     setActiveProject({
       ...proj,
+      openId: openCountRef.current,
       imageRatio: hasSize ? thumb.naturalWidth / thumb.naturalHeight : null,
-      // When the thumbnail IS the lightbox file, never upscale past its
-      // real width (the lightbox shows images at natural size at most).
+      // When the thumbnail IS the only lightbox file (no gallery variant),
+      // never upscale past its real width (the lightbox shows images at
+      // natural size at most).
       imageMaxWidth: hasSize && !proj.galleryImage ? thumb.naturalWidth : null,
     });
   };
 
   const handleCloseProject = () => {
     setActiveProject(null);
+  };
+
+  // The lightbox shows the gallery variant unless this opening has moved on
+  // to the original (an upgrade, or a fallback after the variant failed).
+  const lightboxSrc = activeProject
+    ? (lightboxImage?.openId === activeProject.openId
+      ? lightboxImage.src
+      : activeProject.galleryImage ?? activeProject.image)
+    : null;
+
+  // Once the variant has loaded, fetch and decode the original in the
+  // background if the screen needs more pixels, then swap it in. Only when
+  // the box was reserved from the card's ratio (so the swap can't change the
+  // layout), and never in Data Saver mode.
+  const handleLightboxImageLoad = (e) => {
+    const img = e.currentTarget;
+    const project = activeProject;
+    if (!project?.galleryImage || project.galleryImage === project.image) return;
+    if (img.getAttribute('src') !== project.galleryImage) return;
+    if (!project.imageRatio || cancelOriginalRef.current || prefersSaveData() || !needsMorePixels(img)) return;
+
+    const { openId, image: original } = project;
+    const loader = new Image();
+    let cancelled = false;
+    cancelOriginalRef.current = () => {
+      cancelled = true;
+      loader.removeAttribute('src'); // stops the download
+    };
+    loader.src = original;
+    loader.decode().then(
+      () => {
+        if (cancelled) return;
+        cancelOriginalRef.current = null;
+        setLightboxImage({ openId, src: original });
+      },
+      // The original failed to load or decode — keep showing the variant.
+      () => { if (!cancelled) cancelOriginalRef.current = null; }
+    );
+  };
+
+  // The variant failed → fall back to the original, once. If the original
+  // fails too there is nothing safer to try, so leave it.
+  const handleLightboxImageError = (e) => {
+    const project = activeProject;
+    if (!project || e.currentTarget.getAttribute('src') === project.image) return;
+    setLightboxImage({ openId: project.openId, src: project.image });
   };
 
   return (
@@ -310,7 +391,10 @@ const Gallery = ({ onOpenConsultation }) => {
 
             <div className={styles.modalImageWrapper}>
               <img
-                src={activeProject.image}
+                key={activeProject.openId}
+                src={lightboxSrc}
+                onLoad={handleLightboxImageLoad}
+                onError={handleLightboxImageError}
                 alt={activeProject.title}
                 className={`${styles.modalImg} ${activeProject.imageRatio ? styles.modalImgSized : ''}`}
                 style={activeProject.imageRatio ? {
