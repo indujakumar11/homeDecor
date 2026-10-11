@@ -186,6 +186,13 @@
   color: #ff7b72;
 }
 
+// "N / 1000 characters" under the notes field.
+.charCount {
+  align-self: flex-end;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
 .formFooter {
   display: flex;
   flex-direction: column;

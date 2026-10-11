@@ -266,6 +266,13 @@
   color: #ff7b72;
 }
 
+// "N / 1000 characters" under the project-details field.
+.charCount {
+  align-self: flex-end;
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
 .submitBtn {
   margin-top: 0.75rem;
   padding: 1.05rem;

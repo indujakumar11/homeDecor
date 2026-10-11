@@ -22,7 +22,14 @@ const buildEnquiryMessage = (data) => [
 
 // Validated fields in on-screen order — the first one with an error gets
 // focus after a failed submit.
-const FIELD_ORDER = ['name', 'phone', 'email', 'message'];
+const FIELD_ORDER = ['name', 'phone', 'email', 'projectType', 'message'];
+
+// Maximum lengths (characters). `maxLength` stops typing past these;
+// validateForm() enforces the same limits for values that arrive any other
+// way. Phone allows a little more than its 8–15 character rule so an
+// over-long pasted number is kept and flagged, not cut down to a
+// valid-looking but wrong number.
+const LIMITS = { name: 100, phone: 20, email: 254, message: 1000 };
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -48,12 +55,19 @@ const Contact = () => {
     focusAfterErrorsRef.current = null;
   }, [errors]);
 
+  const counterId = (field) => `${idPrefix}-${field}-count`;
+
   // aria-invalid + a link to the visible error text while there is one.
   // Explicit "false" otherwise: with `required`, browsers would report a
   // half-typed email as invalid before any submit.
-  const errorProps = (field) => (errors[field]
-    ? { 'aria-invalid': true, 'aria-describedby': errorId(field) }
-    : { 'aria-invalid': false });
+  // `describedBy` adds always-present descriptions (e.g. a character count).
+  const errorProps = (field, ...describedBy) => {
+    const ids = [...describedBy, errors[field] && errorId(field)].filter(Boolean);
+    return {
+      'aria-invalid': Boolean(errors[field]),
+      ...(ids.length ? { 'aria-describedby': ids.join(' ') } : {}),
+    };
+  };
   const gridRef = useScrollReveal({ selector: `.${styles.contactInfoCol}, .${styles.contactFormCol}`, y: 24, stagger: 0.15 });
 
   const validateForm = () => {
@@ -61,6 +75,8 @@ const Contact = () => {
 
     if (!formData.name.trim()) {
       newErrors.name = 'Please enter your full name';
+    } else if (formData.name.length > LIMITS.name) {
+      newErrors.name = `Please keep your name to ${LIMITS.name} characters or fewer`;
     }
 
     if (!formData.phone.trim()) {
@@ -71,14 +87,23 @@ const Contact = () => {
 
     if (!formData.email.trim()) {
       newErrors.email = 'Please enter your email address';
+    } else if (formData.email.length > LIMITS.email) {
+      newErrors.email = `Please keep your email to ${LIMITS.email} characters or fewer`;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       newErrors.email = 'Please enter a valid email address';
+    }
+
+    // Only the listed options are accepted (nothing else can reach WhatsApp).
+    if (!PROJECT_TYPES.includes(formData.projectType)) {
+      newErrors.projectType = 'Please select a service';
     }
 
     if (!formData.message.trim()) {
       newErrors.message = 'Please provide details about your project or space';
     } else if (formData.message.trim().length < 10) {
       newErrors.message = 'Please describe your requirements in at least 10 characters';
+    } else if (formData.message.length > LIMITS.message) {
+      newErrors.message = `Please keep your project details to ${LIMITS.message} characters or fewer`;
     }
 
     focusAfterErrorsRef.current = FIELD_ORDER.find((field) => newErrors[field]) ?? null;
@@ -207,6 +232,7 @@ const Contact = () => {
                     onChange={handleChange}
                     placeholder="e.g. Rajesh Kumar"
                     className={`${styles.inputField} ${errors.name ? styles.inputError : ''}`}
+                    maxLength={LIMITS.name}
                     required
                     {...errorProps('name')}
                   />
@@ -231,6 +257,7 @@ const Contact = () => {
                       onChange={handleChange}
                       placeholder="+91 98765 43210"
                       className={`${styles.inputField} ${errors.phone ? styles.inputError : ''}`}
+                      maxLength={LIMITS.phone}
                       required
                       {...errorProps('phone')}
                     />
@@ -253,6 +280,7 @@ const Contact = () => {
                       onChange={handleChange}
                       placeholder="yourname@gmail.com"
                       className={`${styles.inputField} ${errors.email ? styles.inputError : ''}`}
+                      maxLength={LIMITS.email}
                       required
                       {...errorProps('email')}
                     />
@@ -275,7 +303,8 @@ const Contact = () => {
                       name="projectType"
                       value={formData.projectType}
                       onChange={handleChange}
-                      className={styles.selectField}
+                      className={`${styles.selectField} ${errors.projectType ? styles.inputError : ''}`}
+                      {...errorProps('projectType')}
                     >
                       {PROJECT_TYPES.map((type) => (
                         <option key={type} value={type}>
@@ -284,6 +313,11 @@ const Contact = () => {
                       ))}
                     </select>
                   </div>
+                  {errors.projectType && (
+                    <span id={errorId('projectType')} className={styles.errorMessage}>
+                      <AlertCircle size={13} /> {errors.projectType}
+                    </span>
+                  )}
                 </div>
 
                 {/* Message */}
@@ -299,9 +333,18 @@ const Contact = () => {
                     onChange={handleChange}
                     placeholder="Describe your space dimensions, preferred style (murals, FRP statues, turnkey interior), or site location..."
                     className={`${styles.textareaField} ${errors.message ? styles.inputError : ''}`}
+                    maxLength={LIMITS.message}
                     required
-                    {...errorProps('message')}
+                    {...errorProps('message', counterId('message'))}
                   ></textarea>
+                  {/* Visible count so a paste cut off at the limit is never
+                      silent; the live region announces only when it's reached. */}
+                  <span id={counterId('message')} className={styles.charCount}>
+                    {formData.message.length} / {LIMITS.message} characters
+                  </span>
+                  <span className="visually-hidden" aria-live="polite">
+                    {formData.message.length >= LIMITS.message ? `Character limit of ${LIMITS.message} reached` : ''}
+                  </span>
                   {errors.message && (
                     <span id={errorId('message')} className={styles.errorMessage}>
                       <AlertCircle size={13} /> {errors.message}

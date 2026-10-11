@@ -11,6 +11,15 @@ import styles from './ConsultationModal.module.scss';
 const SERVICES_LIST = servicesData.map((s) => s.title);
 const isValidService = (value) => SERVICES_LIST.includes(value);
 
+// Maximum lengths (characters). `maxLength` stops typing past these; validate()
+// enforces the same limits for values that arrive any other way. Phone allows
+// a little more than its 8–15 character rule so an over-long pasted number is
+// kept and flagged, not cut down to a valid-looking but wrong number.
+const LIMITS = { name: 100, phone: 20, email: 254, location: 150, notes: 1000 };
+// Validated fields in on-screen order, and their element ids (the first one
+// with an error gets focus after a failed submit).
+const FIELD_IDS = { name: 'c-name', phone: 'c-phone', email: 'c-email', service: 'c-service', location: 'c-loc', notes: 'c-notes' };
+
 // <input type="date"> gives "YYYY-MM-DD"; built from parts (not new Date(str))
 // so it isn't shifted a day by UTC parsing.
 const formatDate = (value) => {
@@ -106,12 +115,19 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
     focusAfterErrorsRef.current = null;
   }, [errors]);
 
+  const counterId = (field) => `${errorIdPrefix}-${field}-count`;
+
   // aria-invalid + a link to the visible error text while there is one.
   // Explicit "false" otherwise: with `required`, browsers would report an
   // empty <select> or half-typed email as invalid before any submit.
-  const errorProps = (field) => (errors[field]
-    ? { 'aria-invalid': true, 'aria-describedby': errorId(field) }
-    : { 'aria-invalid': false });
+  // `describedBy` adds always-present descriptions (e.g. a character count).
+  const errorProps = (field, ...describedBy) => {
+    const ids = [...describedBy, errors[field] && errorId(field)].filter(Boolean);
+    return {
+      'aria-invalid': Boolean(errors[field]),
+      ...(ids.length ? { 'aria-describedby': ids.join(' ') } : {}),
+    };
+  };
   // The post-submit auto-close. Cancelled whenever the modal closes, so a
   // timer from an earlier booking can't close the modal after it's been
   // reopened (dropping whatever the visitor is typing).
@@ -212,7 +228,11 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    } else if (formData.name.length > LIMITS.name) {
+      newErrors.name = `Name must be ${LIMITS.name} characters or fewer`;
+    }
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone is required';
     } else if (!/^[0-9+-\s]{8,15}$/.test(formData.phone.trim())) {
@@ -220,13 +240,20 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
     }
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
+    } else if (formData.email.length > LIMITS.email) {
+      newErrors.email = `Email must be ${LIMITS.email} characters or fewer`;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       newErrors.email = 'Enter a valid email';
     }
     if (!isValidService(formData.service)) newErrors.service = 'Please select a service';
-    // Validated fields in on-screen order → element ids.
-    const firstInvalid = ['name', 'phone', 'email', 'service'].find((field) => newErrors[field]);
-    focusAfterErrorsRef.current = firstInvalid ? `c-${firstInvalid}` : null;
+    if (formData.location.length > LIMITS.location) {
+      newErrors.location = `Location must be ${LIMITS.location} characters or fewer`;
+    }
+    if (formData.notes.length > LIMITS.notes) {
+      newErrors.notes = `Notes must be ${LIMITS.notes} characters or fewer`;
+    }
+    const firstInvalid = Object.keys(FIELD_IDS).find((field) => newErrors[field]);
+    focusAfterErrorsRef.current = firstInvalid ? FIELD_IDS[firstInvalid] : null;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -306,6 +333,7 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
                   onChange={handleChange}
                   placeholder="e.g. Senthil Nathan"
                   className={`${styles.input} ${errors.name ? styles.inputError : ''}`}
+                  maxLength={LIMITS.name}
                   required
                   {...errorProps('name')}
                 />
@@ -326,6 +354,7 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
                   onChange={handleChange}
                   placeholder="+91 97908 38319"
                   className={`${styles.input} ${errors.phone ? styles.inputError : ''}`}
+                  maxLength={LIMITS.phone}
                   required
                   {...errorProps('phone')}
                 />
@@ -348,6 +377,7 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
                   onChange={handleChange}
                   placeholder="name@gmail.com"
                   className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
+                  maxLength={LIMITS.email}
                   required
                   {...errorProps('email')}
                 />
@@ -416,8 +446,15 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
                   value={formData.location}
                   onChange={handleChange}
                   placeholder="e.g. OMR, ECR, Anna Nagar"
-                  className={styles.input}
+                  className={`${styles.input} ${errors.location ? styles.inputError : ''}`}
+                  maxLength={LIMITS.location}
+                  {...errorProps('location')}
                 />
+                {errors.location && (
+                  <span id={errorId('location')} className={styles.errorMsg}>
+                    <AlertCircle size={12} /> {errors.location}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -430,8 +467,23 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
                 value={formData.notes}
                 onChange={handleChange}
                 placeholder="Mention wall dimensions, sculpture size preferences, or specific timeline..."
-                className={styles.textarea}
+                className={`${styles.textarea} ${errors.notes ? styles.inputError : ''}`}
+                maxLength={LIMITS.notes}
+                {...errorProps('notes', counterId('notes'))}
               />
+              {/* Visible count so a paste cut off at the limit is never silent;
+                  the live region announces only when the limit is reached. */}
+              <span id={counterId('notes')} className={styles.charCount}>
+                {formData.notes.length} / {LIMITS.notes} characters
+              </span>
+              <span className="visually-hidden" aria-live="polite">
+                {formData.notes.length >= LIMITS.notes ? `Character limit of ${LIMITS.notes} reached` : ''}
+              </span>
+              {errors.notes && (
+                <span id={errorId('notes')} className={styles.errorMsg}>
+                  <AlertCircle size={12} /> {errors.notes}
+                </span>
+              )}
             </div>
 
             {errors.submit && (
