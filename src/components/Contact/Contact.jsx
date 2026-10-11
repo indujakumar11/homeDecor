@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useId } from 'react';
 import { Phone, Mail, MapPin, Send, CheckCircle2, AlertCircle, Clock, Shield } from 'lucide-react';
 import { useScrollReveal } from '../../hooks/useScrollReveal';
 import { openWhatsApp } from '../../config/contact';
+import { getPhoneFormatError } from '../../lib/phone';
 import { servicesData } from '../../data/servicesData';
 import styles from './Contact.module.scss';
 
@@ -26,9 +27,9 @@ const FIELD_ORDER = ['name', 'phone', 'email', 'projectType', 'message'];
 
 // Maximum lengths (characters). `maxLength` stops typing past these;
 // validateForm() enforces the same limits for values that arrive any other
-// way. Phone allows a little more than its 8–15 character rule so an
-// over-long pasted number is kept and flagged, not cut down to a
-// valid-looking but wrong number.
+// way. Phone's 20 leaves room for formatting around its 8–15 digits (see
+// lib/phone.js), and keeps an over-long pasted number whole so it's flagged,
+// not cut down to a valid-looking but wrong number.
 const LIMITS = { name: 100, phone: 20, email: 254, message: 1000 };
 
 const Contact = () => {
@@ -81,8 +82,9 @@ const Contact = () => {
 
     if (!formData.phone.trim()) {
       newErrors.phone = 'Please enter your contact phone number';
-    } else if (!/^[0-9+-\s]{8,15}$/.test(formData.phone.trim())) {
-      newErrors.phone = 'Please enter a valid phone number (e.g. +91 97908 38319)';
+    } else {
+      const phoneError = getPhoneFormatError(formData.phone);
+      if (phoneError) newErrors.phone = phoneError;
     }
 
     if (!formData.email.trim()) {

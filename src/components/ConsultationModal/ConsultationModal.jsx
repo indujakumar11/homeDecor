@@ -3,6 +3,7 @@ import { X, Calendar, CheckCircle2, Phone, Mail, Clock, AlertCircle } from 'luci
 import { getLenis } from '../../lib/smoothScroll';
 import { lockScroll, unlockScroll } from '../../lib/scrollLock';
 import { openWhatsApp } from '../../config/contact';
+import { getPhoneFormatError } from '../../lib/phone';
 import { servicesData } from '../../data/servicesData';
 import styles from './ConsultationModal.module.scss';
 
@@ -12,9 +13,10 @@ const SERVICES_LIST = servicesData.map((s) => s.title);
 const isValidService = (value) => SERVICES_LIST.includes(value);
 
 // Maximum lengths (characters). `maxLength` stops typing past these; validate()
-// enforces the same limits for values that arrive any other way. Phone allows
-// a little more than its 8–15 character rule so an over-long pasted number is
-// kept and flagged, not cut down to a valid-looking but wrong number.
+// enforces the same limits for values that arrive any other way. Phone's 20
+// leaves room for formatting around its 8–15 digits (see lib/phone.js), and
+// keeps an over-long pasted number whole so it's flagged, not cut down to a
+// valid-looking but wrong number.
 const LIMITS = { name: 100, phone: 20, email: 254, location: 150, notes: 1000 };
 // Validated fields in on-screen order, and their element ids (the first one
 // with an error gets focus after a failed submit).
@@ -235,8 +237,9 @@ const ConsultationModal = ({ isOpen, onClose, defaultService = '', project = '' 
     }
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone is required';
-    } else if (!/^[0-9+-\s]{8,15}$/.test(formData.phone.trim())) {
-      newErrors.phone = 'Enter a valid phone number';
+    } else {
+      const phoneError = getPhoneFormatError(formData.phone);
+      if (phoneError) newErrors.phone = phoneError;
     }
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
