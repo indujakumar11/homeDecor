@@ -324,7 +324,7 @@ const Services = ({ onOpenConsultation }) => {
               {/* Card Content */}
               <div className={styles.cardBody}>
                 <div className={styles.cardHeaderRow}>
-                  <h3 className={styles.cardTitle}>{service.title}</h3>
+                  <h2 className={styles.cardTitle}>{service.title}</h2>
                 </div>
                 
                 <p className={styles.cardDescription}>{service.description}</p>

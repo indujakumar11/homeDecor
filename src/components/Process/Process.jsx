@@ -43,7 +43,7 @@ const Process = ({ onOpenConsultation }) => {
                   <div className={styles.stepContent}>
                     <div className={styles.stepHeader}>
                       <span className={styles.stepSubtitle}>{step.subtitle}</span>
-                      <h3 className={styles.stepTitle}>{step.title}</h3>
+                      <h2 className={styles.stepTitle}>{step.title}</h2>
                     </div>
 
                     <p className={styles.stepDesc}>{step.description}</p>

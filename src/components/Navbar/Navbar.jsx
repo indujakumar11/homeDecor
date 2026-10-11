@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import { NavLink } from 'react-router-dom';
 import Logo from '../common/Logo';
 import { Menu, X, Phone, Calendar, ArrowRight } from 'lucide-react';
@@ -19,6 +19,12 @@ const NAV_LINKS = [
 const HIDE_THRESHOLD = 120; // px — stay visible until scrolled past this, regardless of direction
 const HIDE_DELTA = 4; // px — ignore sub-pixel/inertia jitter when deciding direction
 
+// Keyboard-reachable controls inside the drawer, in DOM order.
+const getFocusable = (root) =>
+  [...root.querySelectorAll('a[href], button, input, select, textarea, [tabindex]')].filter(
+    (el) => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length > 0
+  );
+
 const Navbar = ({ onOpenConsultation }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
@@ -30,6 +36,53 @@ const Navbar = ({ onOpenConsultation }) => {
   // scroll lock, so its mount-time run (drawer starts closed) never
   // releases a lock some other holder (e.g. the Preloader) still needs.
   const holdsLockRef = useRef(false);
+  const drawerRef = useRef(null);
+  const toggleRef = useRef(null);
+  const drawerId = useId();
+
+  // Mobile drawer keyboard behaviour. The open drawer is modal (its backdrop
+  // covers the whole page, header included, and page scroll is locked), so
+  // focus moves to the first link, Tab/Shift+Tab stay inside, and Escape
+  // closes. However it closes — Escape, X, backdrop, a link, the consultation
+  // button — focus goes back to the toggle, if it was in the drawer (or lost)
+  // and the toggle is showing. The closed drawer is `inert` (see JSX).
+  useEffect(() => {
+    if (!mobileMenuOpen || !drawerRef.current) return undefined;
+    const drawer = drawerRef.current;
+    const toggle = toggleRef.current;
+    drawerListRef.current?.querySelector('a')?.focus({ preventScroll: true });
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMobileMenuOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const focusable = getFocusable(drawer);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const inside = drawer.contains(document.activeElement);
+      if (e.shiftKey && (!inside || document.activeElement === first)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (!inside || document.activeElement === last)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      const active = document.activeElement;
+      const focusWasInMenu = !active || active === document.body || drawer.contains(active);
+      if (focusWasInMenu && toggle?.isConnected && toggle.getClientRects().length > 0) {
+        toggle.focus({ preventScroll: true });
+      }
+    };
+  }, [mobileMenuOpen]);
 
   // Stagger-in mobile drawer links each time the drawer opens
   useGSAP(() => {
@@ -134,11 +187,13 @@ const Navbar = ({ onOpenConsultation }) => {
 
             {/* Mobile Hamburger Button */}
             <button
+              ref={toggleRef}
               type="button"
               className={styles.mobileToggle}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-expanded={mobileMenuOpen}
-              aria-label="Toggle navigation menu"
+              aria-controls={drawerId}
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             >
               {mobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
             </button>
@@ -151,7 +206,17 @@ const Navbar = ({ onOpenConsultation }) => {
         className={`${styles.mobileBackdrop} ${mobileMenuOpen ? styles.open : ''}`}
         onClick={() => setMobileMenuOpen(false)}
       />
-      <div className={`${styles.mobileDrawer} ${mobileMenuOpen ? styles.open : ''}`}>
+      <div
+        ref={drawerRef}
+        id={drawerId}
+        className={`${styles.mobileDrawer} ${mobileMenuOpen ? styles.open : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+        // Closed: out of the Tab order and the accessibility tree (it's only
+        // moved off-screen visually).
+        inert={!mobileMenuOpen}
+      >
         <div className={styles.drawerHeader}>
           <Logo size="small" showTagline />
           <button 

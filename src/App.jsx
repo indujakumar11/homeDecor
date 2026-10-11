@@ -1,5 +1,5 @@
-import React, { useState, Suspense, lazy } from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
 import Home from './pages/Home';
 import AboutPage from './pages/AboutPage';
@@ -20,12 +20,34 @@ import Preloader from './components/Preloader/Preloader';
 // into its own chunk and only fetched when someone actually visits /admin.
 const AdminApp = lazy(() => import('./admin/AdminApp'));
 
+// Browser tab title per public route. Home keeps the site's default title
+// (the one in index.html, shown before the app mounts); anything not listed
+// is the not-found page.
+const SITE_NAME = 'Black Shades Home Decors';
+const HOME_TITLE = `${SITE_NAME} | Premium Interior & Architectural Décor in Chennai`;
+const PAGE_TITLES = {
+  '/': HOME_TITLE,
+  '/about': `About Us | ${SITE_NAME}`,
+  '/services': `Our Services | ${SITE_NAME}`,
+  '/projects': `Our Projects | ${SITE_NAME}`,
+  '/process': `Our Process | ${SITE_NAME}`,
+  '/contact': `Contact Us | ${SITE_NAME}`,
+};
+const NOT_FOUND_TITLE = `Page Not Found | ${SITE_NAME}`;
+
 // The public marketing site: Navbar/Footer/WhatsApp/Lenis/GSAP page
 // transitions all live here, exactly as before. Unrelated to /admin.
 function PublicSite() {
   const [isConsultationOpen, setIsConsultationOpen] = useState(false);
   const [selectedService, setSelectedService] = useState('');
   const [selectedProject, setSelectedProject] = useState('');
+  const { pathname } = useLocation();
+
+  // Route paths match with or without a trailing slash, so titles do too.
+  useEffect(() => {
+    const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+    document.title = PAGE_TITLES[path] ?? NOT_FOUND_TITLE;
+  }, [pathname]);
 
   // `service` must be a service title (servicesData); `project` is optional
   // project context kept separate from it. Buttons that pass this directly as

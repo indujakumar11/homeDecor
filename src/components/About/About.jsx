@@ -80,9 +80,9 @@ const About = ({ onOpenConsultation }) => {
 
           {/* Right Column: Narrative & Sectors */}
           <div ref={contentRef} className={styles.contentCol}>
-            <h2 className={styles.mainTitle}>
+            <h1 className={styles.mainTitle}>
               We Don't Just Decorate Spaces. <span className="gold-text">We Create Experiences.</span>
-            </h2>
+            </h1>
             
             <p className={styles.leadParagraph}>
               Black Shades Home Decors specializes in transforming ordinary spaces into distinctive environments through custom décor, sculptural craftsmanship, architectural elements and complete interior solutions.
@@ -94,7 +94,7 @@ const About = ({ onOpenConsultation }) => {
 
             {/* Sectors Served Grid */}
             <div className={styles.sectorsWrapper}>
-              <h3 className={styles.sectorsHeading}>SECTORS WE TRANSFORM</h3>
+              <h2 className={styles.sectorsHeading}>SECTORS WE TRANSFORM</h2>
               <div className={styles.sectorsGrid}>
                 {SECTORS.map((sector) => {
                   const Icon = sector.icon;

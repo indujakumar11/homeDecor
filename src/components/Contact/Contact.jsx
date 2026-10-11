@@ -124,7 +124,7 @@ const Contact = () => {
           {/* Left Column: Direct Contact Details & Info */}
           <div className={styles.contactInfoCol}>
             <div className={styles.infoCard}>
-              <h3 className={styles.infoTitle}>Direct Contact Channels</h3>
+              <h2 className={styles.infoTitle}>Direct Contact Channels</h2>
               <p className={styles.infoDesc}>
                 Reach out directly to discuss architectural blueprints, sculpture casting, or schedule an on-site spatial walkthrough in Chennai.
               </p>
@@ -181,7 +181,7 @@ const Contact = () => {
           {/* Right Column: Interactive Consultation Form */}
           <div className={styles.contactFormCol}>
             <div className={styles.formCard}>
-              <h3 className={styles.formHeading}>Send a Project Enquiry</h3>
+              <h2 className={styles.formHeading}>Send a Project Enquiry</h2>
 
               {submitSuccess && (
                 <div className={styles.successAlert} role="alert">
