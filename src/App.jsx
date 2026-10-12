@@ -3,8 +3,6 @@ import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-d
 import Navbar from './components/Navbar/Navbar';
 import Home from './pages/Home';
 import AboutPage from './pages/AboutPage';
-import ServicesPage from './pages/ServicesPage';
-import ProjectsPage from './pages/ProjectsPage';
 import ProcessPage from './pages/ProcessPage';
 import ContactPage from './pages/ContactPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -15,10 +13,16 @@ import ScrollToTop from './components/common/ScrollToTop';
 import SmoothScrollProvider from './components/SmoothScrollProvider';
 import PageTransition from './components/PageTransition/PageTransition';
 import Preloader from './components/Preloader/Preloader';
+import LazyRoute from './components/LazyRoute/LazyRoute';
 
 // Lazy-loaded: public visitors never need the admin bundle, so it's split
 // into its own chunk and only fetched when someone actually visits /admin.
 const AdminApp = lazy(() => import('./admin/AdminApp'));
+
+// Lazy-loaded: the only public pages that read gallery data, so the Supabase
+// client (most of their code) downloads only when one of them is visited.
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'));
+const ServicesPage = lazy(() => import('./pages/ServicesPage'));
 
 // Browser tab title per public route. Home keeps the site's default title
 // (the one in index.html, shown before the app mounts); anything not listed
@@ -88,8 +92,8 @@ function PublicSite() {
           <Routes>
             <Route path="/" element={<Home onOpenConsultation={handleOpenConsultation} />} />
             <Route path="/about" element={<AboutPage onOpenConsultation={handleOpenConsultation} />} />
-            <Route path="/services" element={<ServicesPage onOpenConsultation={handleOpenConsultation} />} />
-            <Route path="/projects" element={<ProjectsPage onOpenConsultation={handleOpenConsultation} />} />
+            <Route path="/services" element={<LazyRoute page={ServicesPage} onOpenConsultation={handleOpenConsultation} />} />
+            <Route path="/projects" element={<LazyRoute page={ProjectsPage} onOpenConsultation={handleOpenConsultation} />} />
             <Route path="/process" element={<ProcessPage onOpenConsultation={handleOpenConsultation} />} />
             <Route path="/contact" element={<ContactPage />} />
             {/* Unknown public URLs. /admin/* never reaches here — App routes it to AdminApp. */}

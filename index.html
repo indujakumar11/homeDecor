@@ -3,7 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preload" as="image" type="image/webp" href="/assets/hero/hero-bg.webp" fetchpriority="high" />
+    <!-- Hero image preload, Home only. This page serves every route (HashRouter),
+         so a static <link rel="preload"> also fetched the hero on pages that never
+         show it ("preloaded using link preload but not used"). The relative URL
+         resolves exactly like the Hero <img src>, under any base path. -->
+    <script>
+      (function () {
+        var path = location.hash.replace(/^#/, '').split(/[?#]/)[0];
+        if (path !== '' && path !== '/') return;
+        var link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.type = 'image/webp';
+        link.href = 'assets/hero/hero-bg.webp';
+        link.setAttribute('fetchpriority', 'high');
+        document.head.appendChild(link);
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#080808" />
 
