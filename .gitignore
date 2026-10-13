@@ -47,3 +47,7 @@ categorized
 # Backfill script runtime reports (scripts/backfill-gallery-images.js) —
 # generated per-run output, never required by the app, never commit
 scripts/*.report.*.json
+
+# Client delivery documents (handover Markdown/PDF and its build script) —
+# kept locally, not part of the website source
+/docs/

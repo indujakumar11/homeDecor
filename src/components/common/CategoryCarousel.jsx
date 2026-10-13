@@ -5,9 +5,10 @@ import styles from './CategoryCarousel.module.scss';
 // Each `image` points at a dedicated <=200px-long-edge WebP thumbnail
 // (generated from the full-resolution originals by scripts/generate-
 // category-thumbnails.mjs — see that file's header comment), not the
-// original full-resolution file. The originals are untouched and still
-// live alongside these at the same path, just never referenced by this
-// carousel. width/height are each thumbnail's own actual generated pixel
+// original full-resolution file. The source JPGs live in
+// assets-src/categories/ (outside public/, so they're never part of the
+// build); the generated thumbnails live in public/assets/categories/.
+// width/height are each thumbnail's own actual generated pixel
 // dimensions (aspect ratio preserved, never upscaled) — purely an
 // intrinsic-size hint for the browser; CategoryCarousel.module.scss's
 // .thumbnailImage already forces width:100%/height:100% of a fixed-size

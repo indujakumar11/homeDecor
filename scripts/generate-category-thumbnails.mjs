@@ -2,11 +2,14 @@
 // ONE-TIME SCRIPT — category carousel thumbnail generation
 // ============================================================================
 // Generates small WebP thumbnails for the home-page CategoryCarousel from
-// the existing static originals in public/assets/categories and
-// public/assets/services. Run manually with `node scripts/generate-category-
-// thumbnails.mjs` whenever a source image changes — NOT part of the build,
-// NOT imported by the app, and the `sharp` package it depends on is a
-// devDependency used only by this script (never bundled into the site).
+// the full-resolution originals in assets-src/categories (source-only: kept
+// outside public/ so they are never copied into the website build) and the
+// service images in public/assets/services. Thumbnails are written to each
+// target's outDir — public/assets/categories and public/assets/services.
+// Run manually with `node scripts/generate-category-thumbnails.mjs` whenever
+// a source image changes — NOT part of the build, NOT imported by the app,
+// and the `sharp` package it depends on is a devDependency used only by
+// this script (never bundled into the site).
 //
 // Originals are read-only here (fs.readFile only) — nothing in this script
 // ever writes back to the source files, only to new `*-thumb.webp` files.
@@ -26,9 +29,11 @@ const ROOT = path.resolve(__dirname, '..');
 const THUMB_MAX_EDGE = 200;
 const THUMB_QUALITY = 78;
 
+// dir: where the originals are read from; outDir: where thumbnails are
+// written (the public path the site serves them from).
 const TARGETS = [
-  { dir: 'public/assets/categories', files: ['murals.jpg', 'frp-sculptures.jpg', 'marble-sculptures.jpg', 'parametric.jpg', 'interior-decor.jpg'] },
-  { dir: 'public/assets/services', files: ['signage.webp', 'corporate.webp', 'supermarket.webp', 'turnkey.webp'] },
+  { dir: 'assets-src/categories', outDir: 'public/assets/categories', files: ['murals.jpg', 'frp-sculptures.jpg', 'marble-sculptures.jpg', 'parametric.jpg', 'interior-decor.jpg'] },
+  { dir: 'public/assets/services', outDir: 'public/assets/services', files: ['signage.webp', 'corporate.webp', 'supermarket.webp', 'turnkey.webp'] },
 ];
 
 function thumbNameFor(file) {
@@ -38,8 +43,9 @@ function thumbNameFor(file) {
 }
 
 async function main() {
-  for (const { dir, files } of TARGETS) {
+  for (const { dir, outDir, files } of TARGETS) {
     const absDir = path.join(ROOT, dir);
+    const absOutDir = path.join(ROOT, outDir);
     const existing = new Set(await readdir(absDir));
 
     for (const file of files) {
@@ -50,7 +56,7 @@ async function main() {
 
       const srcPath = path.join(absDir, file);
       const outName = thumbNameFor(file);
-      const outPath = path.join(absDir, outName);
+      const outPath = path.join(absOutDir, outName);
 
       const srcMeta = await sharp(srcPath).metadata();
       const srcSize = (await stat(srcPath)).size;
@@ -64,7 +70,7 @@ async function main() {
       const outSize = (await stat(outPath)).size;
 
       console.log(
-        `${dir}/${outName}: ${srcMeta.width}x${srcMeta.height} (${(srcSize / 1024).toFixed(0)} KB) ` +
+        `${outDir}/${outName}: ${srcMeta.width}x${srcMeta.height} (${(srcSize / 1024).toFixed(0)} KB) ` +
         `-> ${outMeta.width}x${outMeta.height} (${(outSize / 1024).toFixed(1)} KB)`
       );
     }
