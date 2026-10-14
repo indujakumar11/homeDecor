@@ -1,0 +1,14 @@
+{
+  // Cloudflare config for the FRONTEND site (static assets only, no Worker code).
+  // Deployed by Workers Builds with: build `npm run build`, deploy `npx wrangler deploy`.
+  // Without this file, Wrangler auto-generates a config during the Cloudflare build.
+  // The image/upload API Worker is separate: see worker/wrangler.jsonc.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "homedecor",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "./dist",
+    // HashRouter app: unknown paths serve index.html (same as the live site today).
+    "not_found_handling": "single-page-application"
+  }
+}
