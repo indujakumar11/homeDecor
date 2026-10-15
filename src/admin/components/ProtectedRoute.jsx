@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { hasValidOtpProof, isCurrentUserEnabledAdmin, getVerifiedTotpFactor, logout } from '../../services/authService';
+import { isCurrentUserEnabledAdmin, getVerifiedTotpFactor, logout } from '../../services/authService';
 import styles from './ProtectedRoute.module.scss';
 
 // Guards admin pages behind, in order:
@@ -15,10 +15,10 @@ import styles from './ProtectedRoute.module.scss';
 //      admin UI shell, even though it could never perform any privileged
 //      write (Worker/RLS independently require admin_users.enabled too).
 //      This step closes that UI-shell-access gap.)
-//   3. a completed second factor — the existing Worker-verified OTP proof
-//      (unchanged, additive, still checked first so the old flow keeps
-//      working exactly as before), OR Supabase's own native aal2 reached
-//      via an already-VERIFIED TOTP factor.
+//   3. a completed second factor — Supabase's own native aal2, reached via
+//      an already-VERIFIED TOTP factor. (The legacy OTP-proof shortcut was
+//      removed: the browser can only decode that proof, never verify its
+//      signature, and the current login flow never issues one.)
 // A session alone is not enough, and (as of Phase 6B) neither is a session
 // + aal2 alone — admin_users.enabled is mandatory. None of these checks are
 // the real security boundary on their own: the Worker independently
@@ -54,13 +54,6 @@ const ProtectedRoute = ({ children }) => {
       if (cancelled) return;
       if (!isAdmin) {
         setStatus('not-admin');
-        return;
-      }
-
-      // Existing Worker-verified OTP proof — unchanged, still accepted on
-      // its own for an enabled admin, exactly as before Phase 6B.
-      if (hasValidOtpProof(data.session.user.id)) {
-        setStatus('authenticated');
         return;
       }
 

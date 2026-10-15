@@ -39,17 +39,9 @@ export interface Env {
 	TWILIO_ACCOUNT_SID?: string;
 	TWILIO_AUTH_TOKEN?: string;
 	TWILIO_VERIFY_SERVICE_SID?: string;
-	// TEMPORARY production escape hatch — must be exactly "true" to take
-	// effect; unset/anything else is the safe default (OTP stays enforced).
-	// When "true", handleOtpStart/handleOtpVerify skip the phone lookup and
-	// OtpProvider (Twilio) entirely, after the identity + enabled-admin
-	// checks still run — so this removes ONLY the second factor, not
-	// authentication itself. Added because production Twilio Verify is
-	// currently broken, blocking all admin logins. Set via
-	// `wrangler secret put ADMIN_OTP_DISABLED --env production` (never commit
-	// a real "true" value to this file's vars). Remove this flag and its two
-	// call sites once Twilio is fixed — grep ADMIN_OTP_DISABLED.
-	ADMIN_OTP_DISABLED?: string;
+	// (The former ADMIN_OTP_DISABLED escape hatch, which let the OTP routes
+	// skip verification entirely, was removed. There is no way to configure
+	// the OTP routes to issue a proof without a successful provider check.)
 }
 
 // Step 2C/2D (local dev only): the Admin Portal calls these routes for
@@ -158,16 +150,30 @@ function isValidKey(key: string): boolean {
 // would be), so a wildcard origin was not exploitable the way it would be
 // for cookie-authenticated APIs. Even so, there's no reason for arbitrary
 // origins to be able to read responses from R2-touching routes, so this is
-// tightened to an explicit allowlist of the exact local dev origins the
-// Vite dev server actually runs on. Add a new entry here (not a wildcard)
-// if you serve the Admin Portal from a different local port/host.
-const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://homedecor.homedecor-blackshade.workers.dev'];
+// tightened to an explicit allowlist. Add new entries here (never a
+// wildcard) if the site or the local Admin Portal moves.
+const PRODUCTION_ORIGINS = ['https://homedecor.homedecor-blackshade.workers.dev'];
+// The Vite dev server's origins — accepted only when ENVIRONMENT is exactly
+// "development" (worker/.dev.vars), never by a deployed Worker.
+const DEVELOPMENT_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+
+// Set from env.ENVIRONMENT at the start of every request (see the fetch
+// handler). It's constant for a given deployment, so sharing it between
+// requests in the same isolate is safe.
+let allowDevelopmentOrigins = false;
 
 function corsHeadersFor(request: Request): Record<string, string> {
 	const requestOrigin = request.headers.get('origin') || '';
-	const allowOrigin = ALLOWED_ORIGINS.includes(requestOrigin) ? requestOrigin : ALLOWED_ORIGINS[0];
+	const allowed =
+		PRODUCTION_ORIGINS.includes(requestOrigin) ||
+		(allowDevelopmentOrigins && DEVELOPMENT_ORIGINS.includes(requestOrigin));
+	// Unapproved (or absent) origin: no CORS grant at all, so browsers block
+	// cross-origin reads. Plain <img> loads don't need CORS and are unaffected.
+	if (!allowed) {
+		return { vary: 'origin' };
+	}
 	return {
-		'access-control-allow-origin': allowOrigin,
+		'access-control-allow-origin': requestOrigin,
 		'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
 		'access-control-allow-headers': 'authorization, content-type, x-otp-proof',
 		// Tells caches/CDNs the response varies by Origin — correct practice
@@ -699,11 +705,6 @@ async function handleOtpStart(request: Request, env: Env): Promise<Response> {
 		);
 	}
 
-	if (env.ADMIN_OTP_DISABLED === 'true') {
-		console.warn(`[handleOtpStart] ADMIN_OTP_DISABLED=true — skipping OTP challenge for admin ${user.id}.`);
-		return json({ success: true }, 200, request);
-	}
-
 	const phone = await getAdminPhone(user.id, env);
 	if (!phone) {
 		// Should not happen once every admin_users row has a phone (see
@@ -777,69 +778,66 @@ async function handleOtpVerify(request: Request, env: Env): Promise<Response> {
 		);
 	}
 
-	if (env.ADMIN_OTP_DISABLED !== 'true') {
-		const phone = await getAdminPhone(user.id, env);
-		if (!phone) {
-			console.error(`[handleOtpVerify] admin ${user.id} has no phone number on file.`);
-			return json(
-				{ success: false, error: 'not_configured', message: 'Unable to verify code. Please try again.' },
-				503,
-				request
-			);
-		}
-
-		if (isProductionUnsafePhone(phone, env)) {
-			console.error(
-				`[handleOtpVerify] admin ${user.id} still has the development placeholder phone number on file in production — refusing to verify.`
-			);
-			return json(
-				{ success: false, error: 'not_configured', message: 'Unable to verify code. Please try again.' },
-				503,
-				request
-			);
-		}
-
-		let body: { otp?: unknown };
-		try {
-			body = await request.json();
-		} catch {
-			return json({ success: false, error: 'invalid_request', message: 'Invalid request.' }, 400, request);
-		}
-		const submittedOtp = typeof body.otp === 'string' ? body.otp.trim() : '';
-		if (!submittedOtp) {
-			return json({ success: false, error: 'invalid_otp', message: 'Invalid OTP.' }, 400, request);
-		}
-
-		let provider: OtpProvider;
-		try {
-			provider = getOtpProvider(env);
-		} catch (err) {
-			console.error('[handleOtpVerify] OTP provider unavailable:', err instanceof Error ? err.message : String(err));
-			return json(
-				{ success: false, error: 'provider_unavailable', message: 'Verification service unavailable. Please try again.' },
-				503,
-				request
-			);
-		}
-
-		const result = await provider.checkVerification(phone, submittedOtp);
-		if (!result.success) {
-			// Fail closed: on ANY provider failure — wrong code, expired, too
-			// many attempts, or a provider/network error — nothing further
-			// happens. No otp_authorizations write, no proof, no
-			// otp_verified=true. One generic message regardless of the
-			// underlying reason (the provider's specific `error` is logged
-			// server-side only, not surfaced) — this is deliberately less
-			// granular than the DEV OTP routes' error codes, since real Twilio
-			// Verify cannot reliably distinguish "wrong code" from "expired"
-			// either, and a uniform response leaks less to a client attempting
-			// to enumerate OTP state.
-			return json({ success: false, error: 'invalid_otp', message: 'Invalid or expired OTP. Please try again.' }, 400, request);
-		}
-	} else {
-		console.warn(`[handleOtpVerify] ADMIN_OTP_DISABLED=true — skipping OTP check for admin ${user.id}.`);
+	const phone = await getAdminPhone(user.id, env);
+	if (!phone) {
+		console.error(`[handleOtpVerify] admin ${user.id} has no phone number on file.`);
+		return json(
+			{ success: false, error: 'not_configured', message: 'Unable to verify code. Please try again.' },
+			503,
+			request
+		);
 	}
 
+	if (isProductionUnsafePhone(phone, env)) {
+		console.error(
+			`[handleOtpVerify] admin ${user.id} still has the development placeholder phone number on file in production — refusing to verify.`
+		);
+		return json(
+			{ success: false, error: 'not_configured', message: 'Unable to verify code. Please try again.' },
+			503,
+			request
+		);
+	}
+
+	let body: { otp?: unknown };
+	try {
+		body = await request.json();
+	} catch {
+		return json({ success: false, error: 'invalid_request', message: 'Invalid request.' }, 400, request);
+	}
+	const submittedOtp = typeof body.otp === 'string' ? body.otp.trim() : '';
+	if (!submittedOtp) {
+		return json({ success: false, error: 'invalid_otp', message: 'Invalid OTP.' }, 400, request);
+	}
+
+	let provider: OtpProvider;
+	try {
+		provider = getOtpProvider(env);
+	} catch (err) {
+		console.error('[handleOtpVerify] OTP provider unavailable:', err instanceof Error ? err.message : String(err));
+		return json(
+			{ success: false, error: 'provider_unavailable', message: 'Verification service unavailable. Please try again.' },
+			503,
+			request
+		);
+	}
+
+	const result = await provider.checkVerification(phone, submittedOtp);
+	if (!result.success) {
+		// Fail closed: on ANY provider failure — wrong code, expired, too
+		// many attempts, or a provider/network error — nothing further
+		// happens. No otp_authorizations write, no proof, no
+		// otp_verified=true. One generic message regardless of the
+		// underlying reason (the provider's specific `error` is logged
+		// server-side only, not surfaced) — this is deliberately less
+		// granular than the DEV OTP routes' error codes, since real Twilio
+		// Verify cannot reliably distinguish "wrong code" from "expired"
+		// either, and a uniform response leaks less to a client attempting
+		// to enumerate OTP state.
+		return json({ success: false, error: 'invalid_otp', message: 'Invalid or expired OTP. Please try again.' }, 400, request);
+	}
+
+	// Only reached after a successful provider check above.
 	const { token, expiresAt } = await signOtpProof(user.id, env.OTP_PROOF_SECRET);
 
 	const dbAuthorized = await recordOtpAuthorization(user.id, expiresAt, env);
@@ -884,6 +882,11 @@ function withCors(response: Response, request: Request): Response {
 		headers.set(key, value);
 	}
 	return new Response(response.body, { status: response.status, headers });
+}
+
+// HEAD responses carry the same status and headers as GET, never a body.
+function withoutBodyForHead(request: Request, response: Response): Response {
+	return request.method === 'HEAD' ? new Response(null, { status: response.status, headers: response.headers }) : response;
 }
 
 function json(data: unknown, status: number, request: Request): Response {
@@ -1061,9 +1064,11 @@ async function handleGetImage(request: Request, env: Env): Promise<Response> {
 		return json({ error: 'Invalid object key.' }, 400, request);
 	}
 
-	let object: R2ObjectBody | null;
+	// HEAD only needs the object's metadata, so skip downloading its body.
+	const isHead = request.method === 'HEAD';
+	let object: R2Object | R2ObjectBody | null;
 	try {
-		object = await env.DECOR_IMAGES.get(key);
+		object = isHead ? await env.DECOR_IMAGES.head(key) : await env.DECOR_IMAGES.get(key);
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		return json({ error: `Failed to read from R2: ${message}` }, 500, request);
@@ -1074,12 +1079,14 @@ async function handleGetImage(request: Request, env: Env): Promise<Response> {
 	}
 
 	return withCors(
-		new Response(object.body, {
+		new Response(isHead || !('body' in object) ? null : object.body, {
 			headers: {
 				'content-type': object.httpMetadata?.contentType || 'application/octet-stream',
 				'content-length': String(object.size),
 				etag: object.httpEtag,
 				'cache-control': IMAGE_CACHE_CONTROL,
+				// Never let a browser reinterpret a stored file as another type.
+				'x-content-type-options': 'nosniff',
 			},
 		}),
 		request
@@ -1123,6 +1130,7 @@ async function handleDeleteImage(request: Request, env: Env): Promise<Response> 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		const url = new URL(request.url);
+		allowDevelopmentOrigins = env.ENVIRONMENT === 'development';
 
 		if (request.method === 'OPTIONS') {
 			return new Response(null, { status: 204, headers: corsHeadersFor(request) });
@@ -1156,15 +1164,29 @@ export default {
 			return handleGetImage(request, env);
 		}
 
+		// HEAD: same status and headers as GET, never a body (including for
+		// error responses).
+		if (request.method === 'HEAD' && url.pathname.startsWith('/api/images/')) {
+			const response = await handleGetImage(request, env);
+			return new Response(null, { status: response.status, headers: response.headers });
+		}
+
 		if (request.method === 'DELETE' && url.pathname.startsWith('/api/images/')) {
 			return handleDeleteImage(request, env);
 		}
 
-		return withCors(
-			new Response('Home Decor Worker is running (local dev only).', {
-				headers: { 'content-type': 'text/plain' },
-			}),
-			request
-		);
+		if (url.pathname === '/') {
+			return withoutBodyForHead(
+				request,
+				withCors(
+					new Response('Black Shades Home Decors image API.', {
+						headers: { 'content-type': 'text/plain; charset=utf-8' },
+					}),
+					request
+				)
+			);
+		}
+
+		return withoutBodyForHead(request, json({ error: 'Not found.' }, 404, request));
 	},
 } satisfies ExportedHandler<Env>;
